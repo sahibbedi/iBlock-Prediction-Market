@@ -1,0 +1,17 @@
+packages:
+  "recharts": "For rendering AMM probability charts and portfolio performance"
+  "date-fns": "For formatting timestamps and resolving dates"
+  "clsx": "For conditional class merging"
+  "tailwind-merge": "For elegant tailwind class resolution in UI components"
+  "lucide-react": "For beautiful crisp iconography"
+  "framer-motion": "For page transitions and premium micro-interactions"
+
+images:
+  - path: "artifacts/ibpm/public/images/auth-bg.png"
+    description: "Dark, moody abstract geometric data visualization background with subtle glowing green and red lines representing trading charts and probability curves in 3D space"
+    aspect_ratio: "16:9"
+
+notes:
+  - The API client hooks are generated in @workspace/api-client-react and natively use the custom fetch implementation.
+  - Auth token is managed via localStorage 'ibpm_token'. Assuming customFetch handles passing it, or we rely on session cookies if customFetch is configured that way. (We will store it in localStorage just in case).
+  - All routes expect an Authorization header or cookie.
