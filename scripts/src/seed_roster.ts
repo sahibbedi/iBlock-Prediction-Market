@@ -1,0 +1,127 @@
+/**
+ * ONE-TIME roster seed (additive; safe to re-run).
+ *
+ * Creates the two academic cohorts (428, 412) if missing, then inserts the
+ * class roster into the `roster` allowlist with each student's cohort and a
+ * round-robin rotation group (1..3, 15 each). Students then self-register at
+ * /auth/register using their @illinois.edu email.
+ *
+ * This does NOT create user accounts and does NOT touch existing data.
+ * Re-running is safe: cohorts and roster rows are keyed and skipped on conflict.
+ *
+ * Run (dev first, then prod after a backup):
+ *   node --experimental-strip-types artifacts/.../scripts/src/seed_roster.ts
+ * (use whatever path/command your other seed uses)
+ */
+import { db, rosterTable, cohortsTable, usersTable } from "@workspace/db";
+
+// [email, displayName, cohortLabel] — order defines round-robin rotation groups.
+const STUDENTS: [string, string, string][] = [
+  // --- FIN 428 ---
+  ["vb24@illinois.edu", "Vaibhav Bhaskar", "428"],
+  ["jcorn3@illinois.edu", "Jonathan Corneo", "428"],
+  ["eannone2@illinois.edu", "Michael Eannone", "428"],
+  ["jacobh9@illinois.edu", "Jacob Harris", "428"],
+  ["krishvh2@illinois.edu", "Krish Hingorani", "428"],
+  ["yma64@illinois.edu", "Yonglin Ma", "428"],
+  ["km72@illinois.edu", "Gary Mei", "428"],
+  ["micklin3@illinois.edu", "Jessica Micklin", "428"],
+  ["mjm43@illinois.edu", "Michael Milanowski", "428"],
+  ["oolab4@illinois.edu", "Lana Olabintan", "428"],
+  ["rianpp2@illinois.edu", "Rian Patel", "428"],
+  ["andylp2@illinois.edu", "Andy Pei", "428"],
+  ["chrisr3@illinois.edu", "Chris Ramos", "428"],
+  ["nsasi2@illinois.edu", "Netsh Sasikumar", "428"],
+  ["ss196@illinois.edu", "Sam Sathiaraj", "428"],
+  ["vsing5@illinois.edu", "Viraj Singh", "428"],
+  ["arjun8@illinois.edu", "Arjun Sivasankaran", "428"],
+  ["bgsmith2@illinois.edu", "Brendan Smith", "428"],
+  // --- FIN 412 ---
+  ["asfaw2@illinois.edu", "Nina Asfaw", "412"],
+  ["ssb14@illinois.edu", "Skanda Badinarayan", "412"],
+  ["ybansal4@illinois.edu", "Yash Bansal", "412"],
+  ["mchiang6@illinois.edu", "Michelle Chiang", "412"],
+  ["sethc4@illinois.edu", "Seth Cohen", "412"],
+  ["amard2@illinois.edu", "Amar Dani", "412"],
+  ["dduca2@illinois.edu", "Daniel Duca", "412"],
+  ["adumbre2@illinois.edu", "Abhishek Dumbre", "412"],
+  ["devg4@illinois.edu", "Dev Gandhi", "412"],
+  ["sethg2@illinois.edu", "Seth Garcia", "412"],
+  ["zhihang5@illinois.edu", "Frank Guan", "412"],
+  ["dguzik2@illinois.edu", "Dom Guzik", "412"],
+  ["bharvel2@illinois.edu", "Bailey Harvel", "412"],
+  ["eshantk2@illinois.edu", "Eshan Karmarkar", "412"],
+  ["namanrk2@illinois.edu", "Nama Kiran", "412"],
+  ["clipton2@illinois.edu", "Cameron Lipton", "412"],
+  ["ym38@illinois.edu", "Yvonne Ma", "412"],
+  ["rishim6@illinois.edu", "Rishi Malhotra", "412"],
+  ["kmotyka2@illinois.edu", "Kamil Motyka", "412"],
+  ["sudheer5@illinois.edu", "Sudheer Ragavan", "412"],
+  ["ryanco2@illinois.edu", "Ryan O'Donnell", "412"],
+  ["eshanvp2@illinois.edu", "Eshan Patel", "412"],
+  ["mpoot@illinois.edu", "Matthew Poothurail", "412"],
+  ["martyr2@illinois.edu", "Marty Ryan", "412"],
+  ["seinet2@illinois.edu", "Seine Tangkarawakul", "412"],
+  ["carlee2@illinois.edu", "Carlee White", "412"],
+  ["jyuwono2@illinois.edu", "Justin Yuwono", "412"],
+];
+
+async function ensureCohort(name: string, teacherId: number): Promise<number> {
+  const all = await db.select().from(cohortsTable);
+  const found = all.find((c) => c.name === name);
+  if (found) return found.id;
+  const [created] = await db
+    .insert(cohortsTable)
+    .values({ name, description: `FIN ${name} beta cohort`, teacherId })
+    .returning();
+  return created.id;
+}
+
+async function main() {
+  // Resolve a teacher/admin to own the cohorts.
+  const users = await db.select().from(usersTable);
+  const teacher = users.find((u) => u.role === "teacher" || u.role === "admin");
+  if (!teacher) {
+    throw new Error("No teacher/admin user found. Create one before seeding the roster.");
+  }
+
+  const cohortIds: Record<string, number> = {
+    "428": await ensureCohort("428", teacher.id),
+    "412": await ensureCohort("412", teacher.id),
+  };
+
+  const rows = STUDENTS.map(([email, displayName, cohortLabel], i) => ({
+    email: email.trim().toLowerCase(),
+    displayName,
+    cohortLabel,
+    cohortId: cohortIds[cohortLabel] ?? null,
+    rotationGroup: (i % 3) + 1, // 1,2,3,1,2,3 -> 15 each across 45
+    claimed: false,
+  }));
+
+  const inserted = await db
+    .insert(rosterTable)
+    .values(rows)
+    .onConflictDoNothing({ target: rosterTable.email })
+    .returning({ id: rosterTable.id });
+
+  const counts = rows.reduce(
+    (acc, r) => {
+      acc.groups[r.rotationGroup] = (acc.groups[r.rotationGroup] ?? 0) + 1;
+      return acc;
+    },
+    { groups: {} as Record<number, number> }
+  );
+
+  console.log(`Roster seed complete.`);
+  console.log(`  Cohorts: 428=#${cohortIds["428"]}, 412=#${cohortIds["412"]}`);
+  console.log(`  Roster rows in list: ${rows.length}`);
+  console.log(`  Newly inserted (skipped existing): ${inserted.length}`);
+  console.log(`  Rotation groups: 1=${counts.groups[1]}, 2=${counts.groups[2]}, 3=${counts.groups[3]}`);
+  process.exit(0);
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
