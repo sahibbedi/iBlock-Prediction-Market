@@ -1,0 +1,1212 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: iBlock Prediction Market API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication and session management
+  - name: users
+    description: User management
+  - name: cohorts
+    description: Cohort management
+  - name: markets
+    description: Prediction market operations
+  - name: trades
+    description: Trading operations
+  - name: wallet
+    description: Wallet and token operations
+  - name: liquidity
+    description: Liquidity provisioning
+  - name: leaderboard
+    description: Leaderboard and analytics
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current user
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user info
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users (teacher/admin only)
+      parameters:
+        - name: cohortId
+          in: query
+          schema:
+            type: integer
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [student, market_maker, teacher, admin]
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a new user (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{userId}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user by ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update user (admin/teacher only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{userId}/promote:
+    post:
+      operationId: promoteToMarketMaker
+      tags: [users]
+      summary: Promote student to market maker role
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User promoted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /cohorts:
+    get:
+      operationId: listCohorts
+      tags: [cohorts]
+      summary: List all cohorts
+      responses:
+        "200":
+          description: List of cohorts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Cohort"
+    post:
+      operationId: createCohort
+      tags: [cohorts]
+      summary: Create a new cohort (teacher/admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCohortRequest"
+      responses:
+        "201":
+          description: Cohort created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cohort"
+
+  /cohorts/{cohortId}:
+    get:
+      operationId: getCohort
+      tags: [cohorts]
+      summary: Get cohort details
+      parameters:
+        - name: cohortId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Cohort details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cohort"
+
+  /cohorts/{cohortId}/members:
+    get:
+      operationId: getCohortMembers
+      tags: [cohorts]
+      summary: Get members of a cohort
+      parameters:
+        - name: cohortId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Cohort members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: addCohortMember
+      tags: [cohorts]
+      summary: Add a user to a cohort
+      parameters:
+        - name: cohortId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCohortMemberRequest"
+      responses:
+        "200":
+          description: Member added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /markets:
+    get:
+      operationId: listMarkets
+      tags: [markets]
+      summary: List prediction markets
+      parameters:
+        - name: cohortId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, closed, resolved]
+      responses:
+        "200":
+          description: List of markets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Market"
+    post:
+      operationId: createMarket
+      tags: [markets]
+      summary: Create a new prediction market (teacher only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMarketRequest"
+      responses:
+        "201":
+          description: Market created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+
+  /markets/{marketId}:
+    get:
+      operationId: getMarket
+      tags: [markets]
+      summary: Get market details
+      parameters:
+        - name: marketId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Market details with AMM state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketDetail"
+
+  /markets/{marketId}/resolve:
+    post:
+      operationId: resolveMarket
+      tags: [markets]
+      summary: Resolve a market outcome (teacher only)
+      parameters:
+        - name: marketId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveMarketRequest"
+      responses:
+        "200":
+          description: Market resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+
+  /markets/{marketId}/close:
+    post:
+      operationId: closeMarket
+      tags: [markets]
+      summary: Close a market for trading (teacher only)
+      parameters:
+        - name: marketId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Market closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+
+  /markets/{marketId}/safeguards:
+    patch:
+      operationId: updateMarketSafeguards
+      tags: [markets]
+      summary: Update manipulation safeguard parameters for a market (teacher only)
+      parameters:
+        - name: marketId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSafeguardsRequest"
+      responses:
+        "200":
+          description: Safeguards updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+        "404":
+          description: Market not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /markets/{marketId}/price-history:
+    get:
+      operationId: getMarketPriceHistory
+      tags: [markets]
+      summary: Get price history for a market
+      parameters:
+        - name: marketId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Price history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PricePoint"
+
+  /markets/{marketId}/trades:
+    get:
+      operationId: getMarketTrades
+      tags: [markets]
+      summary: Get trades for a market
+      parameters:
+        - name: marketId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Trade list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Trade"
+
+  /trades:
+    post:
+      operationId: executeTrade
+      tags: [trades]
+      summary: Execute a buy or sell trade on a market
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TradeRequest"
+      responses:
+        "200":
+          description: Trade executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradeResult"
+        "400":
+          description: Insufficient balance or invalid trade
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /trades/quote:
+    post:
+      operationId: getTradeQuote
+      tags: [trades]
+      summary: Get a price quote for a trade without executing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TradeRequest"
+      responses:
+        "200":
+          description: Trade quote
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradeQuote"
+
+  /wallet/balance:
+    get:
+      operationId: getWalletBalance
+      tags: [wallet]
+      summary: Get current user wallet balance
+      responses:
+        "200":
+          description: Wallet balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletBalance"
+
+  /wallet/faucet:
+    post:
+      operationId: claimFaucet
+      tags: [wallet]
+      summary: Claim $GIES tokens from the faucet
+      responses:
+        "200":
+          description: Tokens claimed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaucetResult"
+        "400":
+          description: Already claimed today
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /wallet/transactions:
+    get:
+      operationId: getTransactions
+      tags: [wallet]
+      summary: Get transaction history for current user
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Transaction history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
+
+  /wallet/positions:
+    get:
+      operationId: getPositions
+      tags: [wallet]
+      summary: Get current user token positions across all markets
+      responses:
+        "200":
+          description: Positions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Position"
+
+  /wallet/redeem:
+    post:
+      operationId: redeemTokens
+      tags: [wallet]
+      summary: Redeem outcome tokens from a resolved market
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RedeemRequest"
+      responses:
+        "200":
+          description: Tokens redeemed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedeemResult"
+
+  /liquidity/provide:
+    post:
+      operationId: provideLiquidity
+      tags: [liquidity]
+      summary: Add liquidity to a market pool (market makers only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiquidityRequest"
+      responses:
+        "200":
+          description: Liquidity provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiquidityResult"
+
+  /liquidity/remove:
+    post:
+      operationId: removeLiquidity
+      tags: [liquidity]
+      summary: Remove liquidity from a market pool (market makers only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RemoveLiquidityRequest"
+      responses:
+        "200":
+          description: Liquidity removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiquidityResult"
+
+  /liquidity/positions:
+    get:
+      operationId: getLiquidityPositions
+      tags: [liquidity]
+      summary: Get liquidity positions for current user
+      responses:
+        "200":
+          description: Liquidity positions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LiquidityPosition"
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get leaderboard for a cohort
+      parameters:
+        - name: cohortId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Leaderboard
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required: [username, password]
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required: [user, token]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [student, market_maker, teacher, admin]
+        cohortId:
+          type: integer
+          nullable: true
+        giesBalance:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, username, displayName, role, giesBalance, createdAt]
+
+    CreateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [student, market_maker, teacher, admin]
+        cohortId:
+          type: integer
+      required: [username, displayName, password, role]
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [student, market_maker, teacher, admin]
+        cohortId:
+          type: integer
+          nullable: true
+
+    Cohort:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        teacherId:
+          type: integer
+        memberCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, teacherId, memberCount, createdAt]
+
+    CreateCohortRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required: [name]
+
+    AddCohortMemberRequest:
+      type: object
+      properties:
+        userId:
+          type: integer
+      required: [userId]
+
+    Market:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        resolutionCriteria:
+          type: string
+        learningPanel:
+          type: string
+          nullable: true
+        category:
+          type: string
+        cohortId:
+          type: integer
+          nullable: true
+        creatorId:
+          type: integer
+        status:
+          type: string
+          enum: [open, closed, resolved]
+        outcome:
+          type: string
+          enum: [yes, no]
+          nullable: true
+        yesPrice:
+          type: number
+        noPrice:
+          type: number
+        totalVolume:
+          type: number
+        totalLiquidity:
+          type: number
+        resolvesAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        tradingFeeRate:
+          type: number
+          description: Base trading fee rate (e.g. 0.02 = 2%)
+        maxPriceImpact:
+          type: number
+          description: Maximum allowed price impact per trade (e.g. 0.15 = 15%)
+        minPoolDepth:
+          type: number
+          description: Minimum pool size floor in GIES
+        maxTradeSizePct:
+          type: number
+          description: Maximum single trade size as a fraction of the total pool
+      required: [id, title, description, resolutionCriteria, category, creatorId, status, yesPrice, noPrice, totalVolume, totalLiquidity, createdAt, tradingFeeRate, maxPriceImpact, minPoolDepth, maxTradeSizePct]
+
+    MarketDetail:
+      allOf:
+        - $ref: "#/components/schemas/Market"
+        - type: object
+          properties:
+            yesPool:
+              type: number
+            noPool:
+              type: number
+            lpShares:
+              type: number
+            recentTrades:
+              type: array
+              items:
+                $ref: "#/components/schemas/Trade"
+          required: [yesPool, noPool, lpShares, recentTrades]
+
+    CreateMarketRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        resolutionCriteria:
+          type: string
+        learningPanel:
+          type: string
+        category:
+          type: string
+        cohortId:
+          type: integer
+          nullable: true
+        initialLiquidity:
+          type: number
+        resolvesAt:
+          type: string
+          format: date-time
+        maxPriceImpact:
+          type: number
+          description: Maximum allowed price impact (e.g. 0.15 = 15%). Defaults to 0.15.
+        minPoolDepth:
+          type: number
+          description: Minimum pool depth floor in GIES. Defaults to 10.
+        maxTradeSizePct:
+          type: number
+          description: Maximum single trade size as fraction of pool (e.g. 0.25 = 25%). Defaults to 0.25.
+      required: [title, description, resolutionCriteria, category, initialLiquidity]
+
+    ResolveMarketRequest:
+      type: object
+      properties:
+        outcome:
+          type: string
+          enum: [yes, no]
+      required: [outcome]
+
+    PricePoint:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        yesPrice:
+          type: number
+        noPrice:
+          type: number
+        volume:
+          type: number
+      required: [timestamp, yesPrice, noPrice, volume]
+
+    Trade:
+      type: object
+      properties:
+        id:
+          type: integer
+        marketId:
+          type: integer
+        userId:
+          type: integer
+        username:
+          type: string
+        side:
+          type: string
+          enum: [buy, sell]
+        outcome:
+          type: string
+          enum: [yes, no]
+        tokenAmount:
+          type: number
+        giesCost:
+          type: number
+        pricePerToken:
+          type: number
+        txHash:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, marketId, userId, username, side, outcome, tokenAmount, giesCost, pricePerToken, txHash, createdAt]
+
+    TradeRequest:
+      type: object
+      properties:
+        marketId:
+          type: integer
+        side:
+          type: string
+          enum: [buy, sell]
+        outcome:
+          type: string
+          enum: [yes, no]
+        amount:
+          type: number
+        amountType:
+          type: string
+          enum: [tokens, gies]
+      required: [marketId, side, outcome, amount, amountType]
+
+    TradeResult:
+      type: object
+      properties:
+        trade:
+          $ref: "#/components/schemas/Trade"
+        newYesPrice:
+          type: number
+        newNoPrice:
+          type: number
+        newGiesBalance:
+          type: number
+        txHash:
+          type: string
+      required: [trade, newYesPrice, newNoPrice, newGiesBalance, txHash]
+
+    TradeQuote:
+      type: object
+      properties:
+        tokenAmount:
+          type: number
+        giesCost:
+          type: number
+        pricePerToken:
+          type: number
+        priceImpact:
+          type: number
+          description: Price impact as a percentage (e.g. 12.5 means 12.5%)
+        newYesPrice:
+          type: number
+        newNoPrice:
+          type: number
+        effectiveFeeRate:
+          type: number
+          description: Dynamic fee rate applied to this trade (e.g. 0.03 = 3%)
+        safeguardWarnings:
+          type: array
+          items:
+            type: string
+          description: List of warning or blocking messages from safeguard checks
+        isBlocked:
+          type: boolean
+          description: Whether this trade would be blocked by a safeguard
+      required: [tokenAmount, giesCost, pricePerToken, priceImpact, newYesPrice, newNoPrice, effectiveFeeRate, safeguardWarnings, isBlocked]
+
+    UpdateSafeguardsRequest:
+      type: object
+      properties:
+        maxPriceImpact:
+          type: number
+          description: Maximum allowed price impact (e.g. 0.15 = 15%)
+        minPoolDepth:
+          type: number
+          description: Minimum pool depth floor in GIES
+        maxTradeSizePct:
+          type: number
+          description: Maximum single trade size as fraction of pool (e.g. 0.25 = 25%)
+
+    WalletBalance:
+      type: object
+      properties:
+        giesBalance:
+          type: number
+        totalPortfolioValue:
+          type: number
+        unrealizedPnl:
+          type: number
+        realizedPnl:
+          type: number
+      required: [giesBalance, totalPortfolioValue, unrealizedPnl, realizedPnl]
+
+    FaucetResult:
+      type: object
+      properties:
+        amount:
+          type: number
+        newBalance:
+          type: number
+        nextClaimAt:
+          type: string
+          format: date-time
+      required: [amount, newBalance, nextClaimAt]
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [faucet, trade_buy, trade_sell, liquidity_add, liquidity_remove, redeem, fee_earned]
+        amount:
+          type: number
+        description:
+          type: string
+        txHash:
+          type: string
+        marketId:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, type, amount, description, txHash, createdAt]
+
+    Position:
+      type: object
+      properties:
+        marketId:
+          type: integer
+        marketTitle:
+          type: string
+        marketStatus:
+          type: string
+          enum: [open, closed, resolved]
+        outcome:
+          type: string
+          enum: [yes, no]
+        tokenAmount:
+          type: number
+        avgCostBasis:
+          type: number
+        currentValue:
+          type: number
+        unrealizedPnl:
+          type: number
+      required: [marketId, marketTitle, marketStatus, outcome, tokenAmount, avgCostBasis, currentValue, unrealizedPnl]
+
+    RedeemRequest:
+      type: object
+      properties:
+        marketId:
+          type: integer
+        outcome:
+          type: string
+          enum: [yes, no]
+      required: [marketId, outcome]
+
+    RedeemResult:
+      type: object
+      properties:
+        tokensRedeemed:
+          type: number
+        giesReceived:
+          type: number
+        newBalance:
+          type: number
+      required: [tokensRedeemed, giesReceived, newBalance]
+
+    LiquidityRequest:
+      type: object
+      properties:
+        marketId:
+          type: integer
+        giesAmount:
+          type: number
+      required: [marketId, giesAmount]
+
+    RemoveLiquidityRequest:
+      type: object
+      properties:
+        marketId:
+          type: integer
+        lpShares:
+          type: number
+      required: [marketId, lpShares]
+
+    LiquidityResult:
+      type: object
+      properties:
+        lpShares:
+          type: number
+        giesAmount:
+          type: number
+        yesTokens:
+          type: number
+        noTokens:
+          type: number
+        newGiesBalance:
+          type: number
+      required: [lpShares, giesAmount, yesTokens, noTokens, newGiesBalance]
+
+    LiquidityPosition:
+      type: object
+      properties:
+        marketId:
+          type: integer
+        marketTitle:
+          type: string
+        lpShares:
+          type: number
+        poolShare:
+          type: number
+        estimatedValue:
+          type: number
+        feesEarned:
+          type: number
+      required: [marketId, marketTitle, lpShares, poolShare, estimatedValue, feesEarned]
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        userId:
+          type: integer
+        username:
+          type: string
+        displayName:
+          type: string
+        giesBalance:
+          type: number
+        totalPortfolioValue:
+          type: number
+        totalPnl:
+          type: number
+        tradesCount:
+          type: integer
+        role:
+          type: string
+      required: [rank, userId, username, displayName, giesBalance, totalPortfolioValue, totalPnl, tradesCount, role]
