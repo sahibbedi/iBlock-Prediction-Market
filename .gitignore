@@ -1,0 +1,8 @@
+target/
+.anchor/
+solana/target/
+solana/.anchor/
+solana/node_modules/
+solana/test-ledger/
+solana/.yarn/
+.DS_Store

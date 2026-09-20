@@ -1,0 +1,24 @@
+{
+  "name": "ibpm-program",
+  "private": true,
+  "packageManager": "yarn@1.22.22",
+  "scripts": {
+    "keys": "mkdir -p target/deploy && cp keys/ibpm-keypair.json target/deploy/ibpm-keypair.json",
+    "build": "yarn keys && CARGO_TARGET_DIR=\"$PWD/target\" cargo-build-sbf --tools-version v1.52 --manifest-path programs/ibpm/Cargo.toml",
+    "idl": "anchor idl build -p ibpm",
+    "test:math": "cargo test -p ibpm --lib",
+    "test": "anchor test --skip-build",
+    "test:devnet": "IBPM_DEVNET=1 yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/devnet-smoke.ts"
+  },
+  "devDependencies": {
+    "@coral-xyz/anchor": "0.32.1",
+    "@solana/spl-token": "^0.4.13",
+    "@solana/web3.js": "^1.98.4",
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
+    "chai": "^4.5.0",
+    "mocha": "^10.8.2",
+    "ts-mocha": "^10.1.0",
+    "typescript": "~5.6.3"
+  }
+}
