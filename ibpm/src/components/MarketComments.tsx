@@ -181,7 +181,7 @@ export default function MarketComments({ marketId }: MarketCommentsProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {user ? (
+        {user && ["trader", "market_maker"].includes(user.role) ? (
           <form onSubmit={handleSubmit} className="space-y-3">
             <textarea
               value={text}
@@ -229,7 +229,7 @@ export default function MarketComments({ marketId }: MarketCommentsProps) {
           <div className="space-y-4">
             {allComments.map(comment => {
               const isOwner = user?.id === comment.userId;
-              const isPrivileged = user?.role === "teacher" || user?.role === "admin";
+              const isPrivileged = user?.role === "admin";
               const canDelete = isOwner || isPrivileged;
               const isOptimistic = comment.id < 0;
 

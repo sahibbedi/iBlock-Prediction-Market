@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { db, marketIdeasTable, marketIdeaVotesTable, usersTable } from "@workspace/db";
 import { eq, desc, and, count, sql } from "drizzle-orm";
-import { authMiddleware, requireAuth, canTeach } from "../lib/auth.js";
+import { authMiddleware, requireParticipant, requireActive, requireAuth, requireAdmin } from "../lib/auth.js";
 import { evaluateAndAwardBadges } from "../lib/badges.js";
 
 const router = Router();
 
-router.get("/ideas", authMiddleware, requireAuth, async (req, res) => {
+router.get("/ideas", authMiddleware, requireAuth, requireParticipant, requireActive, async (req, res) => {
   const { status } = req.query;
   const userId = req.user!.id;
 
@@ -54,7 +54,7 @@ router.get("/ideas", authMiddleware, requireAuth, async (req, res) => {
   })));
 });
 
-router.post("/ideas", authMiddleware, requireAuth, async (req, res) => {
+router.post("/ideas", authMiddleware, requireAuth, requireParticipant, requireActive, async (req, res) => {
   const { title, description, category } = req.body;
 
   if (!title?.trim()) {
@@ -95,7 +95,7 @@ router.post("/ideas", authMiddleware, requireAuth, async (req, res) => {
   });
 });
 
-router.post("/ideas/:id/vote", authMiddleware, requireAuth, async (req, res) => {
+router.post("/ideas/:id/vote", authMiddleware, requireAuth, requireParticipant, requireActive, async (req, res) => {
   const ideaId = parseInt(String(req.params.id));
   if (isNaN(ideaId)) {
     res.status(400).json({ error: "Invalid idea ID" });
@@ -124,7 +124,7 @@ router.post("/ideas/:id/vote", authMiddleware, requireAuth, async (req, res) => 
   }
 });
 
-router.patch("/ideas/:id", authMiddleware, requireAuth, canTeach, async (req, res) => {
+router.patch("/ideas/:id", authMiddleware, requireAuth, requireAdmin, async (req, res) => {
   const ideaId = parseInt(String(req.params.id));
   if (isNaN(ideaId)) {
     res.status(400).json({ error: "Invalid idea ID" });

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, marketCommentsTable, usersTable, positionsTable } from "@workspace/db";
 import { eq, desc, and, inArray } from "drizzle-orm";
-import { authMiddleware, requireAuth } from "../lib/auth.js";
+import { authMiddleware, requireParticipant, requireActive, requireAuth } from "../lib/auth.js";
 import { evaluateAndAwardBadges } from "../lib/badges.js";
 
 const router = Router();
@@ -87,7 +87,7 @@ router.get("/markets/:marketId/comments", authMiddleware, async (req, res) => {
   res.json(result);
 });
 
-router.post("/markets/:marketId/comments", authMiddleware, requireAuth, async (req, res) => {
+router.post("/markets/:marketId/comments", authMiddleware, requireAuth, requireParticipant, requireActive, async (req, res) => {
   const marketId = parseInt(String(req.params.marketId));
   if (isNaN(marketId) || marketId <= 0) {
     res.status(400).json({ error: "Invalid market ID" });
@@ -168,7 +168,7 @@ router.delete("/comments/:commentId", authMiddleware, requireAuth, async (req, r
   }
 
   const isOwner = comment.userId === req.user!.id;
-  const isPrivileged = ["teacher", "admin"].includes(req.user!.role);
+  const isPrivileged = ["admin"].includes(req.user!.role);
 
   if (!isOwner && !isPrivileged) {
     res.status(403).json({ error: "You can only delete your own comments" });

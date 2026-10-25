@@ -6,3 +6,11 @@ solana/node_modules/
 solana/test-ledger/
 solana/.yarn/
 .DS_Store
+
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+tmp/

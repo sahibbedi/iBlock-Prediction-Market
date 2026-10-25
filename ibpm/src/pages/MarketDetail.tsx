@@ -13,7 +13,7 @@ import {
   getGetTransactionsQueryKey,
   getGetMarketTradesQueryKey
 } from "@workspace/api-client-react";
-import { withAuthHeaders } from "@/contexts/AuthContext";
+import { useAuth, withAuthHeaders } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, Badge, Button, Input, ProbabilityBar, Table, Th, Td } from "@/components/ui";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { formatGies, formatProb, formatDateTime, truncateHash, cn } from "@/lib/utils";
@@ -25,6 +25,8 @@ export default function MarketDetail() {
   const { id } = useParams<{ id: string }>();
   const marketId = parseInt(id, 10);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const participant = user?.role === "trader" || user?.role === "market_maker";
 
   const { data: market, isLoading } = useGetMarket(marketId, withAuthHeaders());
   const { data: history } = useGetMarketPriceHistory(marketId, withAuthHeaders());
@@ -45,7 +47,7 @@ export default function MarketDetail() {
   const tradeMutation = useExecuteTrade(withAuthHeaders());
 
   useEffect(() => {
-    if (amount > 0 && market?.status === "open") {
+    if (participant && amount > 0 && market?.status === "open") {
       const timer = setTimeout(() => {
         quoteMutation.mutate({
           data: { marketId, side, outcome, amount, amountType: side === "buy" ? "gies" : "tokens" }
@@ -276,7 +278,7 @@ export default function MarketDetail() {
               <CardTitle>Trade</CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              {market.status !== 'open' ? (
+              {!participant ? <p className="text-muted-foreground">Read-only access. Trading requires an enrolled participant account.</p> : market.status !== 'open' ? (
                 <div className="text-center py-8">
                   <Badge variant="warning" className="text-lg px-4 py-2 mb-4">Market Closed</Badge>
                   <p className="text-muted-foreground">Trading is no longer available.</p>

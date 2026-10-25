@@ -26,6 +26,7 @@ export const marketsTable = pgTable("markets", {
   cumulativeFees: numeric("cumulative_fees", { precision: 18, scale: 6 }).notNull().default("0"),
 
   tradingFeeRate: numeric("trading_fee_rate", { precision: 6, scale: 4 }).notNull().default("0.02"),
+  maxFeeRate: numeric("max_fee_rate", { precision: 6, scale: 4 }).notNull().default("0.05"),
   maxPriceImpact: numeric("max_price_impact", { precision: 6, scale: 4 }).notNull().default("0.15"),
   minPoolDepth: numeric("min_pool_depth", { precision: 18, scale: 6 }).notNull().default("10"),
   maxTradeSizePct: numeric("max_trade_size_pct", { precision: 6, scale: 4 }).notNull().default("0.25"),

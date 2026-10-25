@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, marketsTable, usersTable, lpPositionsTable, transactionsTable, positionsTable } from "@workspace/db";
+import { db, marketsTable, usersTable, lpPositionsTable, transactionsTable, positionsTable, platformConfigTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { authMiddleware, requireAuth, generateTxHash } from "../lib/auth.js";
 import { evaluateAndAwardBadges } from "../lib/badges.js";
@@ -12,7 +12,7 @@ function httpError(status: number, message: string) {
 
 function requireMarketMaker(req: any, res: any, next: any) {
   if (!req.user) return res.status(401).json({ error: "Authentication required" });
-  if (!["market_maker", "teacher", "admin"].includes(req.user.role)) {
+  if (req.user.role !== "market_maker") {
     return res.status(403).json({ error: "Market maker role required to provide liquidity" });
   }
   next();
@@ -53,21 +53,24 @@ async function getOrCreateLpPosition(tx: any, userId: number, marketId: number) 
 
 router.post("/provide", authMiddleware, requireAuth, requireMarketMaker, async (req, res) => {
   const { marketId, giesAmount } = req.body;
-  if (!giesAmount || giesAmount <= 0) {
+  if (!Number.isFinite(giesAmount) || giesAmount <= 0) {
     res.status(400).json({ error: "Amount must be positive" });
     return;
   }
 
   try {
     const result = await db.transaction(async (tx) => {
+      const [config] = await tx.select().from(platformConfigTable).where(eq(platformConfigTable.id, 1)).for("share");
+      if (!config) throw httpError(503, "Platform not initialized");
       const [market] = await tx.select().from(marketsTable).where(eq(marketsTable.id, marketId)).for("update").limit(1);
       if (!market) throw httpError(404, "Market not found");
       if (market.status !== "open") throw httpError(400, "Market is not open");
 
       const [user] = await tx.select().from(usersTable).where(eq(usersTable.id, req.user!.id)).for("update").limit(1);
-      // Market makers fund liquidity from their DESK capital; teacher/admin use
-      // their personal balance (preserves seeded prof liquidity accounting).
-      const isMaker = user.role === "market_maker";
+      // Appointed makers provide liquidity from persistent desk capital.
+      if (user.role !== "market_maker") throw httpError(403, "Appointed maker required");
+      const isMaker = true;
+      if (config.paused || !user.active) throw httpError(403, "New liquidity is paused or membership is inactive");
       const userBalance = parseFloat(isMaker ? user.deskBalance : user.giesBalance);
       if (userBalance < giesAmount) throw httpError(400, isMaker ? "Insufficient desk capital" : "Insufficient $GIES balance");
 
@@ -144,13 +147,15 @@ router.post("/provide", authMiddleware, requireAuth, requireMarketMaker, async (
 
 router.post("/remove", authMiddleware, requireAuth, requireMarketMaker, async (req, res) => {
   const { marketId, lpShares } = req.body;
-  if (!lpShares || lpShares <= 0) {
+  if (!Number.isFinite(lpShares) || lpShares <= 0) {
     res.status(400).json({ error: "Shares must be positive" });
     return;
   }
 
   try {
     const result = await db.transaction(async (tx) => {
+      const [config] = await tx.select().from(platformConfigTable).where(eq(platformConfigTable.id, 1)).for("share");
+      if (!config) throw httpError(503, "Platform not initialized");
       const [market] = await tx.select().from(marketsTable).where(eq(marketsTable.id, marketId)).for("update").limit(1);
       if (!market) throw httpError(404, "Market not found");
 
@@ -177,8 +182,9 @@ router.post("/remove", authMiddleware, requireAuth, requireMarketMaker, async (r
 
       const txHash = generateTxHash();
 
-      // Makers return capital to their desk; teacher/admin to personal balance.
-      const isMaker = user.role === "market_maker";
+      // Matched collateral returns to the maker desk.
+      if (user.role !== "market_maker") throw httpError(403, "Appointed maker required");
+      const isMaker = true;
       await tx.update(usersTable)
         .set(isMaker
           ? { deskBalance: (parseFloat(user.deskBalance) + matched).toFixed(6) }

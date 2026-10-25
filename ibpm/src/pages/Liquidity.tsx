@@ -21,7 +21,7 @@ export default function Liquidity() {
   const [amount, setAmount] = useState("");
   const [ilExpanded, setIlExpanded] = useState(false);
 
-  if (user?.role !== "market_maker" && user?.role !== "teacher" && user?.role !== "admin") {
+  if (user?.role !== "market_maker") {
     return <div className="p-8 text-center text-destructive text-xl">Access Denied. Market Makers only.</div>;
   }
 

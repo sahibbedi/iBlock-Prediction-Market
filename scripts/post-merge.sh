@@ -1,4 +1,5 @@
 #!/bin/bash
 set -e
 pnpm install --frozen-lockfile
-pnpm --filter db push
+pnpm typecheck
+# Database changes require an explicit, reviewed migration. Never push schema on merge.

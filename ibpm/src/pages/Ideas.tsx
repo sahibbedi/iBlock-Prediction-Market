@@ -37,7 +37,7 @@ const STATUS_FILTER_OPTIONS = [
 export default function Ideas() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const isTeacher = user?.role === "teacher" || user?.role === "admin";
+  const isAdmin = user?.role === "admin";
 
   const [statusFilter, setStatusFilter] = useState("");
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -124,7 +124,7 @@ export default function Ideas() {
 
   const statusBadge = (status: string) => {
     if (status === "approved") return <Badge variant="success">Approved</Badge>;
-    if (status === "rejected") return <Badge variant="destructive">Rejected</Badge>;
+    if (status === "rejected") return <Badge variant="error">Rejected</Badge>;
     return <Badge variant="warning">Pending</Badge>;
   };
 
@@ -137,7 +137,7 @@ export default function Ideas() {
             Suggest prediction markets for your class to trade on. Vote for the ideas you want to see.
           </p>
         </div>
-        <Button onClick={() => setShowSubmitModal(true)} className="gap-2">
+        <Button disabled={user?.role !== "trader" && user?.role !== "market_maker"} onClick={() => setShowSubmitModal(true)} className="gap-2">
           <Plus className="w-4 h-4" />
           Suggest an Idea
         </Button>
@@ -183,7 +183,7 @@ export default function Ideas() {
                   {/* Vote button */}
                   <button
                     onClick={() => voteMutation.mutate(idea.id)}
-                    disabled={voteMutation.isPending}
+                    disabled={voteMutation.isPending || !["trader", "market_maker"].includes(user?.role || "")}
                     className={cn(
                       "flex flex-col items-center gap-1 px-3 py-2 rounded-xl border transition-all shrink-0",
                       idea.userVoted
@@ -217,7 +217,7 @@ export default function Ideas() {
                       </span>
 
                       {/* Teacher approve/reject — only on pending */}
-                      {isTeacher && idea.status === "pending" && (
+                      {isAdmin && idea.status === "pending" && (
                         <div className="flex items-center gap-2">
                           {reviewingId === idea.id ? (
                             <div className="flex items-center gap-2">

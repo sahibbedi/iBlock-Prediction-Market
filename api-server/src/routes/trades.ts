@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { db, marketsTable, tradesTable, usersTable, positionsTable, transactionsTable, priceHistoryTable } from "@workspace/db";
+import { db, marketsTable, tradesTable, usersTable, positionsTable, transactionsTable, priceHistoryTable, platformConfigTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-import { authMiddleware, requireAuth, generateTxHash } from "../lib/auth.js";
+import { authMiddleware, requireAuth, requireParticipant, generateTxHash } from "../lib/auth.js";
 import { quoteBuy, quoteSell, quoteBuyExactTokens, computeDynamicFeeRate, evaluateSafeguards } from "../lib/amm.js";
 import { evaluateAndAwardBadges } from "../lib/badges.js";
 
@@ -35,8 +35,9 @@ async function getOrCreatePosition(tx: any, userId: number, marketId: number, ou
   return created;
 }
 
-router.post("/quote", authMiddleware, requireAuth, async (req, res) => {
+router.post("/quote", authMiddleware, requireAuth, requireParticipant, async (req, res) => {
   const { marketId, side, outcome, amount, amountType } = req.body;
+  if (!Number.isSafeInteger(marketId) || !Number.isFinite(amount) || amount <= 0 || !["buy", "sell"].includes(side) || !["yes", "no"].includes(outcome) || !["gies", "tokens"].includes(amountType)) return void res.status(400).json({ error: "Invalid trade request" });
 
   const [market] = await db.select().from(marketsTable).where(eq(marketsTable.id, marketId)).limit(1);
   if (!market) {
@@ -51,7 +52,7 @@ router.post("/quote", authMiddleware, requireAuth, async (req, res) => {
   const yesPool = parseFloat(market.yesPool);
   const noPool = parseFloat(market.noPool);
   const baseFeeRate = parseFloat(market.tradingFeeRate);
-  const effectiveFeeRate = computeDynamicFeeRate(yesPool, noPool, baseFeeRate);
+  const effectiveFeeRate = computeDynamicFeeRate(yesPool, noPool, baseFeeRate, Number(market.maxFeeRate));
 
   const safeguardParams = {
     maxPriceImpact: parseFloat(market.maxPriceImpact),
@@ -91,8 +92,9 @@ router.post("/quote", authMiddleware, requireAuth, async (req, res) => {
   }
 });
 
-router.post("/", authMiddleware, requireAuth, async (req, res) => {
+router.post("/", authMiddleware, requireAuth, requireParticipant, async (req, res) => {
   const { marketId, side, outcome, amount, amountType } = req.body;
+  if (!Number.isSafeInteger(marketId) || !Number.isFinite(amount) || amount <= 0 || !["buy", "sell"].includes(side) || !["yes", "no"].includes(outcome) || !["gies", "tokens"].includes(amountType)) return void res.status(400).json({ error: "Invalid trade request" });
 
   if (side !== "buy" && side !== "sell") {
     res.status(400).json({ error: "side must be 'buy' or 'sell'" });
@@ -105,6 +107,8 @@ router.post("/", authMiddleware, requireAuth, async (req, res) => {
 
   try {
     const result = await db.transaction(async (tx) => {
+      const [config] = await tx.select().from(platformConfigTable).where(eq(platformConfigTable.id, 1)).for("share");
+      if (!config || (side === "buy" && config.paused)) throw httpError(403, "Platform is paused or not initialized");
       // Lock market + user rows so concurrent trades serialize.
       const [market] = await tx.select().from(marketsTable)
         .where(eq(marketsTable.id, marketId)).for("update").limit(1);
@@ -113,6 +117,7 @@ router.post("/", authMiddleware, requireAuth, async (req, res) => {
 
       const [user] = await tx.select().from(usersTable)
         .where(eq(usersTable.id, req.user!.id)).for("update").limit(1);
+      if (!["trader", "market_maker"].includes(user.role) || (side === "buy" && !user.active)) throw httpError(403, "Active membership required for new trades");
       const userBalance = parseFloat(user.giesBalance);
 
       const yesPool = parseFloat(market.yesPool);
@@ -122,7 +127,7 @@ router.post("/", authMiddleware, requireAuth, async (req, res) => {
       const totalYesSupply = parseFloat(market.totalYesSupply);
       const totalNoSupply = parseFloat(market.totalNoSupply);
       const baseFeeRate = parseFloat(market.tradingFeeRate);
-      const effectiveFeeRate = computeDynamicFeeRate(yesPool, noPool, baseFeeRate);
+      const effectiveFeeRate = computeDynamicFeeRate(yesPool, noPool, baseFeeRate, Number(market.maxFeeRate));
       const safeguardParams = {
         maxPriceImpact: parseFloat(market.maxPriceImpact),
         minPoolDepth: parseFloat(market.minPoolDepth),

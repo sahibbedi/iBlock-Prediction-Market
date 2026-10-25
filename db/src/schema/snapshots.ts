@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 // Hourly point-in-time record of each market maker's liquidity position.
-// Drives two things at cycle end:
+// Supports rewards over explicit reporting windows:
 //   1) Fee attribution: sum over intervals of (poolShare * change in market cumulativeFees).
 //   2) Eligibility floor: how much was deployed, across how many markets, for how long.
 export const lpSnapshotsTable = pgTable("lp_snapshots", {
@@ -17,8 +17,6 @@ export const lpSnapshotsTable = pgTable("lp_snapshots", {
   deployedValue: numeric("deployed_value", { precision: 18, scale: 6 }).notNull().default("0"),
   // Market's cumulative fees at snapshot time (for interval fee attribution).
   marketCumulativeFees: numeric("market_cumulative_fees", { precision: 18, scale: 6 }).notNull().default("0"),
-  // Which rotation cycle this snapshot belongs to (the active group at the time).
-  cycleGroup: integer("cycle_group"),
 });
 
 export const insertLpSnapshotSchema = createInsertSchema(lpSnapshotsTable).omit({ id: true });

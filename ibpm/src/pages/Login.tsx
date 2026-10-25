@@ -78,6 +78,7 @@ export default function Login() {
               </Button>
             </form>
 
+            <Button className="w-full mt-4" variant="outline" onClick={() => login("observer")}>Continue as observer</Button>
             <p className="text-sm text-muted-foreground text-center mt-6">
               New here?{" "}
               <Link href="/register" className="text-primary font-medium hover:underline">

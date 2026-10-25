@@ -9,7 +9,7 @@ import Markets from "./pages/Markets";
 import MarketDetail from "./pages/MarketDetail";
 import Portfolio from "./pages/Portfolio";
 import Liquidity from "./pages/Liquidity";
-import TeacherAdmin from "./pages/TeacherAdmin";
+import Committee from "./pages/Committee";
 import Leaderboard from "./pages/Leaderboard";
 import Ideas from "./pages/Ideas";
 import Badges from "./pages/Badges";
@@ -48,8 +48,7 @@ function Router() {
       <Route path="/markets/:id" component={() => <ProtectedRoute component={MarketDetail} />} />
       <Route path="/portfolio" component={() => <ProtectedRoute component={Portfolio} />} />
       <Route path="/liquidity" component={() => <ProtectedRoute component={Liquidity} />} />
-      <Route path="/teacher" component={() => <ProtectedRoute component={TeacherAdmin} />} />
-      <Route path="/admin" component={() => <ProtectedRoute component={TeacherAdmin} />} />
+      <Route path="/admin" component={() => <ProtectedRoute component={Committee} />} />
       <Route path="/leaderboard" component={() => <ProtectedRoute component={Leaderboard} />} />
       <Route path="/ideas" component={() => <ProtectedRoute component={Ideas} />} />
       <Route path="/badges" component={() => <ProtectedRoute component={Badges} />} />

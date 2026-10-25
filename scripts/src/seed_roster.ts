@@ -1,21 +1,10 @@
-/**
- * ONE-TIME roster seed (additive; safe to re-run).
- *
- * Creates the two academic cohorts (428, 412) if missing, then inserts the
- * class roster into the `roster` allowlist with each student's cohort and a
- * round-robin rotation group (1..3, 15 each). Students then self-register at
- * /auth/register using their @illinois.edu email.
- *
- * This does NOT create user accounts and does NOT touch existing data.
- * Re-running is safe: cohorts and roster rows are keyed and skipped on conflict.
- *
- * Run (dev first, then prod after a backup):
- *   node --experimental-strip-types artifacts/.../scripts/src/seed_roster.ts
- * (use whatever path/command your other seed uses)
+/** Optional additive import of the original class allowlist. No maker appointments.
+ * pnpm --filter @workspace/scripts exec tsx src/seed_roster.ts
+ * Existing roster entries and balances are preserved.
  */
 import { db, rosterTable, cohortsTable, usersTable } from "@workspace/db";
 
-// [email, displayName, cohortLabel] — order defines round-robin rotation groups.
+// [email, displayName, cohortLabel] — cohort metadata.
 const STUDENTS: [string, string, string][] = [
   // --- FIN 428 ---
   ["vb24@illinois.edu", "Vaibhav Bhaskar", "428"],
@@ -78,11 +67,11 @@ async function ensureCohort(name: string, teacherId: number): Promise<number> {
 }
 
 async function main() {
-  // Resolve a teacher/admin to own the cohorts.
+  // Resolve a committee admin to own the cohorts.
   const users = await db.select().from(usersTable);
-  const teacher = users.find((u) => u.role === "teacher" || u.role === "admin");
+  const teacher = users.find((u) => u.role === "admin");
   if (!teacher) {
-    throw new Error("No teacher/admin user found. Create one before seeding the roster.");
+    throw new Error("No committee admin user found. Create one before seeding the roster.");
   }
 
   const cohortIds: Record<string, number> = {
@@ -95,7 +84,6 @@ async function main() {
     displayName,
     cohortLabel,
     cohortId: cohortIds[cohortLabel] ?? null,
-    rotationGroup: (i % 3) + 1, // 1,2,3,1,2,3 -> 15 each across 45
     claimed: false,
   }));
 
@@ -105,19 +93,10 @@ async function main() {
     .onConflictDoNothing({ target: rosterTable.email })
     .returning({ id: rosterTable.id });
 
-  const counts = rows.reduce(
-    (acc, r) => {
-      acc.groups[r.rotationGroup] = (acc.groups[r.rotationGroup] ?? 0) + 1;
-      return acc;
-    },
-    { groups: {} as Record<number, number> }
-  );
-
   console.log(`Roster seed complete.`);
   console.log(`  Cohorts: 428=#${cohortIds["428"]}, 412=#${cohortIds["412"]}`);
   console.log(`  Roster rows in list: ${rows.length}`);
   console.log(`  Newly inserted (skipped existing): ${inserted.length}`);
-  console.log(`  Rotation groups: 1=${counts.groups[1]}, 2=${counts.groups[2]}, 3=${counts.groups[3]}`);
   process.exit(0);
 }
 

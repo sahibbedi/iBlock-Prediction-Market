@@ -4,684 +4,624 @@ info:
   version: 0.1.0
   description: iBlock Prediction Market API
 servers:
-  - url: /api
-    description: Base API path
+- url: /api
+  description: Base API path
 tags:
-  - name: health
-    description: Health operations
-  - name: auth
-    description: Authentication and session management
-  - name: users
-    description: User management
-  - name: cohorts
-    description: Cohort management
-  - name: markets
-    description: Prediction market operations
-  - name: trades
-    description: Trading operations
-  - name: wallet
-    description: Wallet and token operations
-  - name: liquidity
-    description: Liquidity provisioning
-  - name: leaderboard
-    description: Leaderboard and analytics
-
+- name: health
+  description: Health operations
+- name: auth
+  description: Authentication and session management
+- name: users
+  description: User management
+- name: cohorts
+  description: Cohort management
+- name: markets
+  description: Prediction market operations
+- name: trades
+  description: Trading operations
+- name: wallet
+  description: Wallet and token operations
+- name: liquidity
+  description: Liquidity provisioning
+- name: leaderboard
+  description: Leaderboard and analytics
 paths:
   /healthz:
     get:
       operationId: healthCheck
-      tags: [health]
+      tags:
+      - health
       summary: Health check
       responses:
-        "200":
+        '200':
           description: Healthy
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HealthStatus"
-
+                $ref: '#/components/schemas/HealthStatus'
   /auth/login:
     post:
       operationId: login
-      tags: [auth]
+      tags:
+      - auth
       summary: Login with username and password
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LoginRequest"
+              $ref: '#/components/schemas/LoginRequest'
       responses:
-        "200":
+        '200':
           description: Login successful
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthResponse"
-        "401":
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
           description: Invalid credentials
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
+                $ref: '#/components/schemas/ErrorResponse'
   /auth/logout:
     post:
       operationId: logout
-      tags: [auth]
+      tags:
+      - auth
       summary: Logout current user
       responses:
-        "200":
+        '200':
           description: Logged out
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MessageResponse"
-
+                $ref: '#/components/schemas/MessageResponse'
   /auth/me:
     get:
       operationId: getMe
-      tags: [auth]
+      tags:
+      - auth
       summary: Get current user info
       responses:
-        "200":
+        '200':
           description: Current user
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
-        "401":
+                $ref: '#/components/schemas/User'
+        '401':
           description: Not authenticated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
+                $ref: '#/components/schemas/ErrorResponse'
   /users:
     get:
       operationId: listUsers
-      tags: [users]
-      summary: List all users (teacher/admin only)
+      tags:
+      - users
+      summary: List all users (committee only)
       parameters:
-        - name: cohortId
-          in: query
-          schema:
-            type: integer
-        - name: role
-          in: query
-          schema:
-            type: string
-            enum: [student, market_maker, teacher, admin]
+      - name: cohortId
+        in: query
+        schema:
+          type: integer
+      - name: role
+        in: query
+        schema:
+          type: string
+          enum:
+          - observer
+          - trader
+          - market_maker
+          - admin
       responses:
-        "200":
+        '200':
           description: List of users
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/User"
-    post:
-      operationId: createUser
-      tags: [users]
-      summary: Create a new user (admin only)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateUserRequest"
-      responses:
-        "201":
-          description: User created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-
-  /users/{userId}:
-    get:
-      operationId: getUser
-      tags: [users]
-      summary: Get user by ID
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: User details
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-    patch:
-      operationId: updateUser
-      tags: [users]
-      summary: Update user (admin/teacher only)
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateUserRequest"
-      responses:
-        "200":
-          description: Updated user
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-
-  /users/{userId}/promote:
-    post:
-      operationId: promoteToMarketMaker
-      tags: [users]
-      summary: Promote student to market maker role
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: User promoted
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-
+                  $ref: '#/components/schemas/User'
   /cohorts:
     get:
       operationId: listCohorts
-      tags: [cohorts]
+      tags:
+      - cohorts
       summary: List all cohorts
       responses:
-        "200":
+        '200':
           description: List of cohorts
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Cohort"
+                  $ref: '#/components/schemas/Cohort'
     post:
       operationId: createCohort
-      tags: [cohorts]
-      summary: Create a new cohort (teacher/admin only)
+      tags:
+      - cohorts
+      summary: Create a new cohort (committee only)
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateCohortRequest"
+              $ref: '#/components/schemas/CreateCohortRequest'
       responses:
-        "201":
+        '201':
           description: Cohort created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Cohort"
-
+                $ref: '#/components/schemas/Cohort'
   /cohorts/{cohortId}:
     get:
       operationId: getCohort
-      tags: [cohorts]
+      tags:
+      - cohorts
       summary: Get cohort details
       parameters:
-        - name: cohortId
-          in: path
-          required: true
-          schema:
-            type: integer
+      - name: cohortId
+        in: path
+        required: true
+        schema:
+          type: integer
       responses:
-        "200":
+        '200':
           description: Cohort details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Cohort"
-
+                $ref: '#/components/schemas/Cohort'
   /cohorts/{cohortId}/members:
     get:
       operationId: getCohortMembers
-      tags: [cohorts]
+      tags:
+      - cohorts
       summary: Get members of a cohort
       parameters:
-        - name: cohortId
-          in: path
-          required: true
-          schema:
-            type: integer
+      - name: cohortId
+        in: path
+        required: true
+        schema:
+          type: integer
       responses:
-        "200":
+        '200':
           description: Cohort members
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/User"
+                  $ref: '#/components/schemas/User'
     post:
       operationId: addCohortMember
-      tags: [cohorts]
+      tags:
+      - cohorts
       summary: Add a user to a cohort
       parameters:
-        - name: cohortId
-          in: path
-          required: true
-          schema:
-            type: integer
+      - name: cohortId
+        in: path
+        required: true
+        schema:
+          type: integer
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AddCohortMemberRequest"
+              $ref: '#/components/schemas/AddCohortMemberRequest'
       responses:
-        "200":
+        '200':
           description: Member added
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MessageResponse"
-
+                $ref: '#/components/schemas/MessageResponse'
   /markets:
     get:
       operationId: listMarkets
-      tags: [markets]
+      tags:
+      - markets
       summary: List prediction markets
       parameters:
-        - name: cohortId
-          in: query
-          schema:
-            type: integer
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [open, closed, resolved]
+      - name: cohortId
+        in: query
+        schema:
+          type: integer
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - open
+          - closed
+          - resolved
       responses:
-        "200":
+        '200':
           description: List of markets
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Market"
-    post:
-      operationId: createMarket
-      tags: [markets]
-      summary: Create a new prediction market (teacher only)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateMarketRequest"
-      responses:
-        "201":
-          description: Market created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Market"
-
+                  $ref: '#/components/schemas/Market'
   /markets/{marketId}:
     get:
       operationId: getMarket
-      tags: [markets]
+      tags:
+      - markets
       summary: Get market details
       parameters:
-        - name: marketId
-          in: path
-          required: true
-          schema:
-            type: integer
+      - name: marketId
+        in: path
+        required: true
+        schema:
+          type: integer
       responses:
-        "200":
+        '200':
           description: Market details with AMM state
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MarketDetail"
-
-  /markets/{marketId}/resolve:
-    post:
-      operationId: resolveMarket
-      tags: [markets]
-      summary: Resolve a market outcome (teacher only)
-      parameters:
-        - name: marketId
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ResolveMarketRequest"
-      responses:
-        "200":
-          description: Market resolved
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Market"
-
-  /markets/{marketId}/close:
-    post:
-      operationId: closeMarket
-      tags: [markets]
-      summary: Close a market for trading (teacher only)
-      parameters:
-        - name: marketId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Market closed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Market"
-
-  /markets/{marketId}/safeguards:
-    patch:
-      operationId: updateMarketSafeguards
-      tags: [markets]
-      summary: Update manipulation safeguard parameters for a market (teacher only)
-      parameters:
-        - name: marketId
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateSafeguardsRequest"
-      responses:
-        "200":
-          description: Safeguards updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Market"
-        "404":
-          description: Market not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
+                $ref: '#/components/schemas/MarketDetail'
   /markets/{marketId}/price-history:
     get:
       operationId: getMarketPriceHistory
-      tags: [markets]
+      tags:
+      - markets
       summary: Get price history for a market
       parameters:
-        - name: marketId
-          in: path
-          required: true
-          schema:
-            type: integer
+      - name: marketId
+        in: path
+        required: true
+        schema:
+          type: integer
       responses:
-        "200":
+        '200':
           description: Price history
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/PricePoint"
-
+                  $ref: '#/components/schemas/PricePoint'
   /markets/{marketId}/trades:
     get:
       operationId: getMarketTrades
-      tags: [markets]
+      tags:
+      - markets
       summary: Get trades for a market
       parameters:
-        - name: marketId
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 50
+      - name: marketId
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 50
       responses:
-        "200":
+        '200':
           description: Trade list
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Trade"
-
+                  $ref: '#/components/schemas/Trade'
   /trades:
     post:
       operationId: executeTrade
-      tags: [trades]
+      tags:
+      - trades
       summary: Execute a buy or sell trade on a market
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TradeRequest"
+              $ref: '#/components/schemas/TradeRequest'
       responses:
-        "200":
+        '200':
           description: Trade executed
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TradeResult"
-        "400":
+                $ref: '#/components/schemas/TradeResult'
+        '400':
           description: Insufficient balance or invalid trade
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
+                $ref: '#/components/schemas/ErrorResponse'
   /trades/quote:
     post:
       operationId: getTradeQuote
-      tags: [trades]
+      tags:
+      - trades
       summary: Get a price quote for a trade without executing
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TradeRequest"
+              $ref: '#/components/schemas/TradeRequest'
       responses:
-        "200":
+        '200':
           description: Trade quote
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TradeQuote"
-
+                $ref: '#/components/schemas/TradeQuote'
   /wallet/balance:
     get:
       operationId: getWalletBalance
-      tags: [wallet]
+      tags:
+      - wallet
       summary: Get current user wallet balance
       responses:
-        "200":
+        '200':
           description: Wallet balance
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/WalletBalance"
-
-  /wallet/faucet:
-    post:
-      operationId: claimFaucet
-      tags: [wallet]
-      summary: Claim $GIES tokens from the faucet
-      responses:
-        "200":
-          description: Tokens claimed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FaucetResult"
-        "400":
-          description: Already claimed today
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
+                $ref: '#/components/schemas/WalletBalance'
   /wallet/transactions:
     get:
       operationId: getTransactions
-      tags: [wallet]
+      tags:
+      - wallet
       summary: Get transaction history for current user
       parameters:
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 50
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 50
       responses:
-        "200":
+        '200':
           description: Transaction history
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Transaction"
-
+                  $ref: '#/components/schemas/Transaction'
   /wallet/positions:
     get:
       operationId: getPositions
-      tags: [wallet]
+      tags:
+      - wallet
       summary: Get current user token positions across all markets
       responses:
-        "200":
+        '200':
           description: Positions
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Position"
-
+                  $ref: '#/components/schemas/Position'
   /wallet/redeem:
     post:
       operationId: redeemTokens
-      tags: [wallet]
+      tags:
+      - wallet
       summary: Redeem outcome tokens from a resolved market
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RedeemRequest"
+              $ref: '#/components/schemas/RedeemRequest'
       responses:
-        "200":
+        '200':
           description: Tokens redeemed
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RedeemResult"
-
+                $ref: '#/components/schemas/RedeemResult'
   /liquidity/provide:
     post:
       operationId: provideLiquidity
-      tags: [liquidity]
+      tags:
+      - liquidity
       summary: Add liquidity to a market pool (market makers only)
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LiquidityRequest"
+              $ref: '#/components/schemas/LiquidityRequest'
       responses:
-        "200":
+        '200':
           description: Liquidity provided
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LiquidityResult"
-
+                $ref: '#/components/schemas/LiquidityResult'
   /liquidity/remove:
     post:
       operationId: removeLiquidity
-      tags: [liquidity]
+      tags:
+      - liquidity
       summary: Remove liquidity from a market pool (market makers only)
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RemoveLiquidityRequest"
+              $ref: '#/components/schemas/RemoveLiquidityRequest'
       responses:
-        "200":
+        '200':
           description: Liquidity removed
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LiquidityResult"
-
+                $ref: '#/components/schemas/LiquidityResult'
   /liquidity/positions:
     get:
       operationId: getLiquidityPositions
-      tags: [liquidity]
+      tags:
+      - liquidity
       summary: Get liquidity positions for current user
       responses:
-        "200":
+        '200':
           description: Liquidity positions
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/LiquidityPosition"
-
+                  $ref: '#/components/schemas/LiquidityPosition'
   /leaderboard:
     get:
       operationId: getLeaderboard
-      tags: [leaderboard]
+      tags:
+      - leaderboard
       summary: Get leaderboard for a cohort
       parameters:
-        - name: cohortId
-          in: query
-          schema:
-            type: integer
+      - name: cohortId
+        in: query
+        schema:
+          type: integer
       responses:
-        "200":
+        '200':
           description: Leaderboard
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/LeaderboardEntry"
-
+                  $ref: '#/components/schemas/LeaderboardEntry'
+  /committee/proposals:
+    post:
+      operationId: proposeCommitteeAction
+      tags:
+      - Committee
+      summary: proposeCommitteeAction
+      responses:
+        '201':
+          description: Proposal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitteeProposal'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommitteeAction'
+  /committee/proposals/{proposalId}/approve:
+    post:
+      operationId: approveCommitteeAction
+      tags:
+      - Committee
+      summary: approveCommitteeAction
+      responses:
+        '200':
+          description: Proposal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitteeProposal'
+      parameters:
+      - name: proposalId
+        in: path
+        required: true
+        schema:
+          type: integer
+  /auth/wallet-challenge:
+    post:
+      operationId: createWalletChallenge
+      tags:
+      - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - wallet
+              properties:
+                wallet:
+                  type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                - expiresAt
+                properties:
+                  message:
+                    type: string
+                  expiresAt:
+                    type: string
+                    format: date-time
+  /auth/link-wallet:
+    post:
+      operationId: linkWallet
+      tags:
+      - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - signature
+              properties:
+                signature:
+                  type: string
+                  description: Base64 Ed25519 signature of the exact challenge message
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - walletAddress
+                properties:
+                  walletAddress:
+                    type: string
+  /runtime:
+    get:
+      operationId: getRuntime
+      security: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - backend
+                - solanaProgramId
+                properties:
+                  backend:
+                    type: string
+                    enum:
+                    - database
+                    - solana
+                  solanaProgramId:
+                    type: string
 components:
   schemas:
     HealthStatus:
@@ -689,22 +629,22 @@ components:
       properties:
         status:
           type: string
-      required: [status]
-
+      required:
+      - status
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
-      required: [error]
-
+      required:
+      - error
     MessageResponse:
       type: object
       properties:
         message:
           type: string
-      required: [message]
-
+      required:
+      - message
     LoginRequest:
       type: object
       properties:
@@ -712,17 +652,19 @@ components:
           type: string
         password:
           type: string
-      required: [username, password]
-
+      required:
+      - username
+      - password
     AuthResponse:
       type: object
       properties:
         user:
-          $ref: "#/components/schemas/User"
+          $ref: '#/components/schemas/User'
         token:
           type: string
-      required: [user, token]
-
+      required:
+      - user
+      - token
     User:
       type: object
       properties:
@@ -736,7 +678,11 @@ components:
           type: string
         role:
           type: string
-          enum: [student, market_maker, teacher, admin]
+          enum:
+          - observer
+          - trader
+          - market_maker
+          - admin
         cohortId:
           type: integer
           nullable: true
@@ -745,8 +691,18 @@ components:
         createdAt:
           type: string
           format: date-time
-      required: [id, username, displayName, role, giesBalance, createdAt]
-
+        active:
+          type: boolean
+        walletAddress:
+          type: string
+          nullable: true
+      required:
+      - id
+      - username
+      - displayName
+      - role
+      - giesBalance
+      - createdAt
     CreateUserRequest:
       type: object
       properties:
@@ -760,11 +716,18 @@ components:
           type: string
         role:
           type: string
-          enum: [student, market_maker, teacher, admin]
+          enum:
+          - observer
+          - trader
+          - market_maker
+          - admin
         cohortId:
           type: integer
-      required: [username, displayName, password, role]
-
+      required:
+      - username
+      - displayName
+      - password
+      - role
     UpdateUserRequest:
       type: object
       properties:
@@ -774,11 +737,14 @@ components:
           type: string
         role:
           type: string
-          enum: [student, market_maker, teacher, admin]
+          enum:
+          - observer
+          - trader
+          - market_maker
+          - admin
         cohortId:
           type: integer
           nullable: true
-
     Cohort:
       type: object
       properties:
@@ -796,8 +762,12 @@ components:
         createdAt:
           type: string
           format: date-time
-      required: [id, name, teacherId, memberCount, createdAt]
-
+      required:
+      - id
+      - name
+      - teacherId
+      - memberCount
+      - createdAt
     CreateCohortRequest:
       type: object
       properties:
@@ -805,15 +775,15 @@ components:
           type: string
         description:
           type: string
-      required: [name]
-
+      required:
+      - name
     AddCohortMemberRequest:
       type: object
       properties:
         userId:
           type: integer
-      required: [userId]
-
+      required:
+      - userId
     Market:
       type: object
       properties:
@@ -837,10 +807,15 @@ components:
           type: integer
         status:
           type: string
-          enum: [open, closed, resolved]
+          enum:
+          - open
+          - closed
+          - resolved
         outcome:
           type: string
-          enum: [yes, no]
+          enum:
+          - 'yes'
+          - 'no'
           nullable: true
         yesPrice:
           type: number
@@ -869,25 +844,43 @@ components:
         maxTradeSizePct:
           type: number
           description: Maximum single trade size as a fraction of the total pool
-      required: [id, title, description, resolutionCriteria, category, creatorId, status, yesPrice, noPrice, totalVolume, totalLiquidity, createdAt, tradingFeeRate, maxPriceImpact, minPoolDepth, maxTradeSizePct]
-
+      required:
+      - id
+      - title
+      - description
+      - resolutionCriteria
+      - category
+      - creatorId
+      - status
+      - yesPrice
+      - noPrice
+      - totalVolume
+      - totalLiquidity
+      - createdAt
+      - tradingFeeRate
+      - maxPriceImpact
+      - minPoolDepth
+      - maxTradeSizePct
     MarketDetail:
       allOf:
-        - $ref: "#/components/schemas/Market"
-        - type: object
-          properties:
-            yesPool:
-              type: number
-            noPool:
-              type: number
-            lpShares:
-              type: number
-            recentTrades:
-              type: array
-              items:
-                $ref: "#/components/schemas/Trade"
-          required: [yesPool, noPool, lpShares, recentTrades]
-
+      - $ref: '#/components/schemas/Market'
+      - type: object
+        properties:
+          yesPool:
+            type: number
+          noPool:
+            type: number
+          lpShares:
+            type: number
+          recentTrades:
+            type: array
+            items:
+              $ref: '#/components/schemas/Trade'
+        required:
+        - yesPool
+        - noPool
+        - lpShares
+        - recentTrades
     CreateMarketRequest:
       type: object
       properties:
@@ -911,23 +904,31 @@ components:
           format: date-time
         maxPriceImpact:
           type: number
-          description: Maximum allowed price impact (e.g. 0.15 = 15%). Defaults to 0.15.
+          description: Maximum allowed price impact (e.g. 0.15 = 15%). Defaults to
+            0.15.
         minPoolDepth:
           type: number
           description: Minimum pool depth floor in GIES. Defaults to 10.
         maxTradeSizePct:
           type: number
-          description: Maximum single trade size as fraction of pool (e.g. 0.25 = 25%). Defaults to 0.25.
-      required: [title, description, resolutionCriteria, category, initialLiquidity]
-
+          description: Maximum single trade size as fraction of pool (e.g. 0.25 =
+            25%). Defaults to 0.25.
+      required:
+      - title
+      - description
+      - resolutionCriteria
+      - category
+      - initialLiquidity
     ResolveMarketRequest:
       type: object
       properties:
         outcome:
           type: string
-          enum: [yes, no]
-      required: [outcome]
-
+          enum:
+          - 'yes'
+          - 'no'
+      required:
+      - outcome
     PricePoint:
       type: object
       properties:
@@ -940,8 +941,11 @@ components:
           type: number
         volume:
           type: number
-      required: [timestamp, yesPrice, noPrice, volume]
-
+      required:
+      - timestamp
+      - yesPrice
+      - noPrice
+      - volume
     Trade:
       type: object
       properties:
@@ -955,10 +959,14 @@ components:
           type: string
         side:
           type: string
-          enum: [buy, sell]
+          enum:
+          - buy
+          - sell
         outcome:
           type: string
-          enum: [yes, no]
+          enum:
+          - 'yes'
+          - 'no'
         tokenAmount:
           type: number
         giesCost:
@@ -970,8 +978,18 @@ components:
         createdAt:
           type: string
           format: date-time
-      required: [id, marketId, userId, username, side, outcome, tokenAmount, giesCost, pricePerToken, txHash, createdAt]
-
+      required:
+      - id
+      - marketId
+      - userId
+      - username
+      - side
+      - outcome
+      - tokenAmount
+      - giesCost
+      - pricePerToken
+      - txHash
+      - createdAt
     TradeRequest:
       type: object
       properties:
@@ -979,22 +997,32 @@ components:
           type: integer
         side:
           type: string
-          enum: [buy, sell]
+          enum:
+          - buy
+          - sell
         outcome:
           type: string
-          enum: [yes, no]
+          enum:
+          - 'yes'
+          - 'no'
         amount:
           type: number
         amountType:
           type: string
-          enum: [tokens, gies]
-      required: [marketId, side, outcome, amount, amountType]
-
+          enum:
+          - tokens
+          - gies
+      required:
+      - marketId
+      - side
+      - outcome
+      - amount
+      - amountType
     TradeResult:
       type: object
       properties:
         trade:
-          $ref: "#/components/schemas/Trade"
+          $ref: '#/components/schemas/Trade'
         newYesPrice:
           type: number
         newNoPrice:
@@ -1003,8 +1031,12 @@ components:
           type: number
         txHash:
           type: string
-      required: [trade, newYesPrice, newNoPrice, newGiesBalance, txHash]
-
+      required:
+      - trade
+      - newYesPrice
+      - newNoPrice
+      - newGiesBalance
+      - txHash
     TradeQuote:
       type: object
       properties:
@@ -1032,8 +1064,18 @@ components:
         isBlocked:
           type: boolean
           description: Whether this trade would be blocked by a safeguard
-      required: [tokenAmount, giesCost, pricePerToken, priceImpact, newYesPrice, newNoPrice, effectiveFeeRate, safeguardWarnings, isBlocked]
-
+        isBootstrapping:
+          type: boolean
+      required:
+      - tokenAmount
+      - giesCost
+      - pricePerToken
+      - priceImpact
+      - newYesPrice
+      - newNoPrice
+      - effectiveFeeRate
+      - safeguardWarnings
+      - isBlocked
     UpdateSafeguardsRequest:
       type: object
       properties:
@@ -1045,8 +1087,8 @@ components:
           description: Minimum pool depth floor in GIES
         maxTradeSizePct:
           type: number
-          description: Maximum single trade size as fraction of pool (e.g. 0.25 = 25%)
-
+          description: Maximum single trade size as fraction of pool (e.g. 0.25 =
+            25%)
     WalletBalance:
       type: object
       properties:
@@ -1058,8 +1100,11 @@ components:
           type: number
         realizedPnl:
           type: number
-      required: [giesBalance, totalPortfolioValue, unrealizedPnl, realizedPnl]
-
+      required:
+      - giesBalance
+      - totalPortfolioValue
+      - unrealizedPnl
+      - realizedPnl
     FaucetResult:
       type: object
       properties:
@@ -1070,8 +1115,10 @@ components:
         nextClaimAt:
           type: string
           format: date-time
-      required: [amount, newBalance, nextClaimAt]
-
+      required:
+      - amount
+      - newBalance
+      - nextClaimAt
     Transaction:
       type: object
       properties:
@@ -1079,7 +1126,14 @@ components:
           type: integer
         type:
           type: string
-          enum: [faucet, trade_buy, trade_sell, liquidity_add, liquidity_remove, redeem, fee_earned]
+          enum:
+          - faucet
+          - trade_buy
+          - trade_sell
+          - liquidity_add
+          - liquidity_remove
+          - redeem
+          - fee_earned
         amount:
           type: number
         description:
@@ -1092,8 +1146,13 @@ components:
         createdAt:
           type: string
           format: date-time
-      required: [id, type, amount, description, txHash, createdAt]
-
+      required:
+      - id
+      - type
+      - amount
+      - description
+      - txHash
+      - createdAt
     Position:
       type: object
       properties:
@@ -1103,10 +1162,15 @@ components:
           type: string
         marketStatus:
           type: string
-          enum: [open, closed, resolved]
+          enum:
+          - open
+          - closed
+          - resolved
         outcome:
           type: string
-          enum: [yes, no]
+          enum:
+          - 'yes'
+          - 'no'
         tokenAmount:
           type: number
         avgCostBasis:
@@ -1115,8 +1179,15 @@ components:
           type: number
         unrealizedPnl:
           type: number
-      required: [marketId, marketTitle, marketStatus, outcome, tokenAmount, avgCostBasis, currentValue, unrealizedPnl]
-
+      required:
+      - marketId
+      - marketTitle
+      - marketStatus
+      - outcome
+      - tokenAmount
+      - avgCostBasis
+      - currentValue
+      - unrealizedPnl
     RedeemRequest:
       type: object
       properties:
@@ -1124,9 +1195,12 @@ components:
           type: integer
         outcome:
           type: string
-          enum: [yes, no]
-      required: [marketId, outcome]
-
+          enum:
+          - 'yes'
+          - 'no'
+      required:
+      - marketId
+      - outcome
     RedeemResult:
       type: object
       properties:
@@ -1136,8 +1210,10 @@ components:
           type: number
         newBalance:
           type: number
-      required: [tokensRedeemed, giesReceived, newBalance]
-
+      required:
+      - tokensRedeemed
+      - giesReceived
+      - newBalance
     LiquidityRequest:
       type: object
       properties:
@@ -1145,8 +1221,9 @@ components:
           type: integer
         giesAmount:
           type: number
-      required: [marketId, giesAmount]
-
+      required:
+      - marketId
+      - giesAmount
     RemoveLiquidityRequest:
       type: object
       properties:
@@ -1154,8 +1231,9 @@ components:
           type: integer
         lpShares:
           type: number
-      required: [marketId, lpShares]
-
+      required:
+      - marketId
+      - lpShares
     LiquidityResult:
       type: object
       properties:
@@ -1169,8 +1247,12 @@ components:
           type: number
         newGiesBalance:
           type: number
-      required: [lpShares, giesAmount, yesTokens, noTokens, newGiesBalance]
-
+      required:
+      - lpShares
+      - giesAmount
+      - yesTokens
+      - noTokens
+      - newGiesBalance
     LiquidityPosition:
       type: object
       properties:
@@ -1186,8 +1268,13 @@ components:
           type: number
         feesEarned:
           type: number
-      required: [marketId, marketTitle, lpShares, poolShare, estimatedValue, feesEarned]
-
+      required:
+      - marketId
+      - marketTitle
+      - lpShares
+      - poolShare
+      - estimatedValue
+      - feesEarned
     LeaderboardEntry:
       type: object
       properties:
@@ -1209,4 +1296,65 @@ components:
           type: integer
         role:
           type: string
-      required: [rank, userId, username, displayName, giesBalance, totalPortfolioValue, totalPnl, tradesCount, role]
+      required:
+      - rank
+      - userId
+      - username
+      - displayName
+      - giesBalance
+      - totalPortfolioValue
+      - totalPnl
+      - tradesCount
+      - role
+    CommitteeAction:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          enum:
+          - role
+          - membership
+          - capital
+          - roster
+          - treasury
+          - pause
+          - thresholds
+          - economics
+          - create_market
+          - close_market
+          - resolve_market
+          - market_params
+          - reward
+      additionalProperties: true
+      description: Action fields and validation are defined in api-server/src/lib/governance.ts.
+        See docs/integration.md.
+    CommitteeProposal:
+      type: object
+      required:
+      - id
+      - action
+      - approvals
+      - status
+      - version
+      - expiresAt
+      properties:
+        id:
+          type: integer
+        action:
+          $ref: '#/components/schemas/CommitteeAction'
+        approvals:
+          type: array
+          items:
+            type: integer
+        status:
+          type: string
+          enum:
+          - pending
+          - executed
+        version:
+          type: integer
+        expiresAt:
+          type: string
+          format: date-time

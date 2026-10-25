@@ -28,10 +28,12 @@ export const LoginResponse = zod.object({
     username: zod.string(),
     displayName: zod.string(),
     email: zod.string().optional(),
-    role: zod.enum(["student", "market_maker", "teacher", "admin"]),
+    role: zod.enum(["observer", "trader", "market_maker", "admin"]),
     cohortId: zod.number().nullish(),
     giesBalance: zod.number(),
     createdAt: zod.date(),
+    active: zod.boolean().optional(),
+    walletAddress: zod.string().nullish(),
   }),
   token: zod.string(),
 });
@@ -51,18 +53,20 @@ export const GetMeResponse = zod.object({
   username: zod.string(),
   displayName: zod.string(),
   email: zod.string().optional(),
-  role: zod.enum(["student", "market_maker", "teacher", "admin"]),
+  role: zod.enum(["observer", "trader", "market_maker", "admin"]),
   cohortId: zod.number().nullish(),
   giesBalance: zod.number(),
   createdAt: zod.date(),
+  active: zod.boolean().optional(),
+  walletAddress: zod.string().nullish(),
 });
 
 /**
- * @summary List all users (teacher/admin only)
+ * @summary List all users (committee only)
  */
 export const ListUsersQueryParams = zod.object({
   cohortId: zod.coerce.number().optional(),
-  role: zod.enum(["student", "market_maker", "teacher", "admin"]).optional(),
+  role: zod.enum(["observer", "trader", "market_maker", "admin"]).optional(),
 });
 
 export const ListUsersResponseItem = zod.object({
@@ -70,85 +74,14 @@ export const ListUsersResponseItem = zod.object({
   username: zod.string(),
   displayName: zod.string(),
   email: zod.string().optional(),
-  role: zod.enum(["student", "market_maker", "teacher", "admin"]),
+  role: zod.enum(["observer", "trader", "market_maker", "admin"]),
   cohortId: zod.number().nullish(),
   giesBalance: zod.number(),
   createdAt: zod.date(),
+  active: zod.boolean().optional(),
+  walletAddress: zod.string().nullish(),
 });
 export const ListUsersResponse = zod.array(ListUsersResponseItem);
-
-/**
- * @summary Create a new user (admin only)
- */
-export const CreateUserBody = zod.object({
-  username: zod.string(),
-  displayName: zod.string(),
-  email: zod.string().optional(),
-  password: zod.string(),
-  role: zod.enum(["student", "market_maker", "teacher", "admin"]),
-  cohortId: zod.number().optional(),
-});
-
-/**
- * @summary Get user by ID
- */
-export const GetUserParams = zod.object({
-  userId: zod.coerce.number(),
-});
-
-export const GetUserResponse = zod.object({
-  id: zod.number(),
-  username: zod.string(),
-  displayName: zod.string(),
-  email: zod.string().optional(),
-  role: zod.enum(["student", "market_maker", "teacher", "admin"]),
-  cohortId: zod.number().nullish(),
-  giesBalance: zod.number(),
-  createdAt: zod.date(),
-});
-
-/**
- * @summary Update user (admin/teacher only)
- */
-export const UpdateUserParams = zod.object({
-  userId: zod.coerce.number(),
-});
-
-export const UpdateUserBody = zod.object({
-  displayName: zod.string().optional(),
-  email: zod.string().optional(),
-  role: zod.enum(["student", "market_maker", "teacher", "admin"]).optional(),
-  cohortId: zod.number().nullish(),
-});
-
-export const UpdateUserResponse = zod.object({
-  id: zod.number(),
-  username: zod.string(),
-  displayName: zod.string(),
-  email: zod.string().optional(),
-  role: zod.enum(["student", "market_maker", "teacher", "admin"]),
-  cohortId: zod.number().nullish(),
-  giesBalance: zod.number(),
-  createdAt: zod.date(),
-});
-
-/**
- * @summary Promote student to market maker role
- */
-export const PromoteToMarketMakerParams = zod.object({
-  userId: zod.coerce.number(),
-});
-
-export const PromoteToMarketMakerResponse = zod.object({
-  id: zod.number(),
-  username: zod.string(),
-  displayName: zod.string(),
-  email: zod.string().optional(),
-  role: zod.enum(["student", "market_maker", "teacher", "admin"]),
-  cohortId: zod.number().nullish(),
-  giesBalance: zod.number(),
-  createdAt: zod.date(),
-});
 
 /**
  * @summary List all cohorts
@@ -164,7 +97,7 @@ export const ListCohortsResponseItem = zod.object({
 export const ListCohortsResponse = zod.array(ListCohortsResponseItem);
 
 /**
- * @summary Create a new cohort (teacher/admin only)
+ * @summary Create a new cohort (committee only)
  */
 export const CreateCohortBody = zod.object({
   name: zod.string(),
@@ -199,10 +132,12 @@ export const GetCohortMembersResponseItem = zod.object({
   username: zod.string(),
   displayName: zod.string(),
   email: zod.string().optional(),
-  role: zod.enum(["student", "market_maker", "teacher", "admin"]),
+  role: zod.enum(["observer", "trader", "market_maker", "admin"]),
   cohortId: zod.number().nullish(),
   giesBalance: zod.number(),
   createdAt: zod.date(),
+  active: zod.boolean().optional(),
+  walletAddress: zod.string().nullish(),
 });
 export const GetCohortMembersResponse = zod.array(GetCohortMembersResponseItem);
 
@@ -258,36 +193,6 @@ export const ListMarketsResponseItem = zod.object({
     .describe("Maximum single trade size as a fraction of the total pool"),
 });
 export const ListMarketsResponse = zod.array(ListMarketsResponseItem);
-
-/**
- * @summary Create a new prediction market (teacher only)
- */
-export const CreateMarketBody = zod.object({
-  title: zod.string(),
-  description: zod.string(),
-  resolutionCriteria: zod.string(),
-  learningPanel: zod.string().optional(),
-  category: zod.string(),
-  cohortId: zod.number().nullish(),
-  initialLiquidity: zod.number(),
-  resolvesAt: zod.date().optional(),
-  maxPriceImpact: zod
-    .number()
-    .optional()
-    .describe(
-      "Maximum allowed price impact (e.g. 0.15 = 15%). Defaults to 0.15.",
-    ),
-  minPoolDepth: zod
-    .number()
-    .optional()
-    .describe("Minimum pool depth floor in GIES. Defaults to 10."),
-  maxTradeSizePct: zod
-    .number()
-    .optional()
-    .describe(
-      "Maximum single trade size as fraction of pool (e.g. 0.25 = 25%). Defaults to 0.25.",
-    ),
-});
 
 /**
  * @summary Get market details
@@ -347,135 +252,6 @@ export const GetMarketResponse = zod
       ),
     }),
   );
-
-/**
- * @summary Resolve a market outcome (teacher only)
- */
-export const ResolveMarketParams = zod.object({
-  marketId: zod.coerce.number(),
-});
-
-export const ResolveMarketBody = zod.object({
-  outcome: zod.enum(["yes", "no"]),
-});
-
-export const ResolveMarketResponse = zod.object({
-  id: zod.number(),
-  title: zod.string(),
-  description: zod.string(),
-  resolutionCriteria: zod.string(),
-  learningPanel: zod.string().nullish(),
-  category: zod.string(),
-  cohortId: zod.number().nullish(),
-  creatorId: zod.number(),
-  status: zod.enum(["open", "closed", "resolved"]),
-  outcome: zod.enum(["yes", "no"]).nullish(),
-  yesPrice: zod.number(),
-  noPrice: zod.number(),
-  totalVolume: zod.number(),
-  totalLiquidity: zod.number(),
-  resolvesAt: zod.date().nullish(),
-  createdAt: zod.date(),
-  tradingFeeRate: zod
-    .number()
-    .describe("Base trading fee rate (e.g. 0.02 = 2%)"),
-  maxPriceImpact: zod
-    .number()
-    .describe("Maximum allowed price impact per trade (e.g. 0.15 = 15%)"),
-  minPoolDepth: zod.number().describe("Minimum pool size floor in GIES"),
-  maxTradeSizePct: zod
-    .number()
-    .describe("Maximum single trade size as a fraction of the total pool"),
-});
-
-/**
- * @summary Close a market for trading (teacher only)
- */
-export const CloseMarketParams = zod.object({
-  marketId: zod.coerce.number(),
-});
-
-export const CloseMarketResponse = zod.object({
-  id: zod.number(),
-  title: zod.string(),
-  description: zod.string(),
-  resolutionCriteria: zod.string(),
-  learningPanel: zod.string().nullish(),
-  category: zod.string(),
-  cohortId: zod.number().nullish(),
-  creatorId: zod.number(),
-  status: zod.enum(["open", "closed", "resolved"]),
-  outcome: zod.enum(["yes", "no"]).nullish(),
-  yesPrice: zod.number(),
-  noPrice: zod.number(),
-  totalVolume: zod.number(),
-  totalLiquidity: zod.number(),
-  resolvesAt: zod.date().nullish(),
-  createdAt: zod.date(),
-  tradingFeeRate: zod
-    .number()
-    .describe("Base trading fee rate (e.g. 0.02 = 2%)"),
-  maxPriceImpact: zod
-    .number()
-    .describe("Maximum allowed price impact per trade (e.g. 0.15 = 15%)"),
-  minPoolDepth: zod.number().describe("Minimum pool size floor in GIES"),
-  maxTradeSizePct: zod
-    .number()
-    .describe("Maximum single trade size as a fraction of the total pool"),
-});
-
-/**
- * @summary Update manipulation safeguard parameters for a market (teacher only)
- */
-export const UpdateMarketSafeguardsParams = zod.object({
-  marketId: zod.coerce.number(),
-});
-
-export const UpdateMarketSafeguardsBody = zod.object({
-  maxPriceImpact: zod
-    .number()
-    .optional()
-    .describe("Maximum allowed price impact (e.g. 0.15 = 15%)"),
-  minPoolDepth: zod
-    .number()
-    .optional()
-    .describe("Minimum pool depth floor in GIES"),
-  maxTradeSizePct: zod
-    .number()
-    .optional()
-    .describe(
-      "Maximum single trade size as fraction of pool (e.g. 0.25 = 25%)",
-    ),
-});
-
-export const UpdateMarketSafeguardsResponse = zod.object({
-  id: zod.number(),
-  title: zod.string(),
-  description: zod.string(),
-  resolutionCriteria: zod.string(),
-  learningPanel: zod.string().nullish(),
-  category: zod.string(),
-  cohortId: zod.number().nullish(),
-  creatorId: zod.number(),
-  status: zod.enum(["open", "closed", "resolved"]),
-  outcome: zod.enum(["yes", "no"]).nullish(),
-  yesPrice: zod.number(),
-  noPrice: zod.number(),
-  totalVolume: zod.number(),
-  totalLiquidity: zod.number(),
-  resolvesAt: zod.date().nullish(),
-  createdAt: zod.date(),
-  tradingFeeRate: zod
-    .number()
-    .describe("Base trading fee rate (e.g. 0.02 = 2%)"),
-  maxPriceImpact: zod
-    .number()
-    .describe("Maximum allowed price impact per trade (e.g. 0.15 = 15%)"),
-  minPoolDepth: zod.number().describe("Minimum pool size floor in GIES"),
-  maxTradeSizePct: zod
-    .number()
-    .describe("Maximum single trade size as a fraction of the total pool"),
-});
 
 /**
  * @summary Get price history for a market
@@ -582,6 +358,7 @@ export const GetTradeQuoteResponse = zod.object({
   isBlocked: zod
     .boolean()
     .describe("Whether this trade would be blocked by a safeguard"),
+  isBootstrapping: zod.boolean().optional(),
 });
 
 /**
@@ -592,15 +369,6 @@ export const GetWalletBalanceResponse = zod.object({
   totalPortfolioValue: zod.number(),
   unrealizedPnl: zod.number(),
   realizedPnl: zod.number(),
-});
-
-/**
- * @summary Claim $GIES tokens from the faucet
- */
-export const ClaimFaucetResponse = zod.object({
-  amount: zod.number(),
-  newBalance: zod.number(),
-  nextClaimAt: zod.date(),
 });
 
 /**
@@ -726,3 +494,88 @@ export const GetLeaderboardResponseItem = zod.object({
   role: zod.string(),
 });
 export const GetLeaderboardResponse = zod.array(GetLeaderboardResponseItem);
+
+/**
+ * @summary proposeCommitteeAction
+ */
+export const ProposeCommitteeActionBody = zod
+  .object({
+    type: zod.enum([
+      "role",
+      "membership",
+      "capital",
+      "roster",
+      "treasury",
+      "pause",
+      "thresholds",
+      "economics",
+      "create_market",
+      "close_market",
+      "resolve_market",
+      "market_params",
+      "reward",
+    ]),
+  })
+  .describe(
+    "Action fields and validation are defined in api-server\/src\/lib\/governance.ts. See docs\/integration.md.",
+  );
+
+/**
+ * @summary approveCommitteeAction
+ */
+export const ApproveCommitteeActionParams = zod.object({
+  proposalId: zod.coerce.number(),
+});
+
+export const ApproveCommitteeActionResponse = zod.object({
+  id: zod.number(),
+  action: zod
+    .object({
+      type: zod.enum([
+        "role",
+        "membership",
+        "capital",
+        "roster",
+        "treasury",
+        "pause",
+        "thresholds",
+        "economics",
+        "create_market",
+        "close_market",
+        "resolve_market",
+        "market_params",
+        "reward",
+      ]),
+    })
+    .describe(
+      "Action fields and validation are defined in api-server\/src\/lib\/governance.ts. See docs\/integration.md.",
+    ),
+  approvals: zod.array(zod.number()),
+  status: zod.enum(["pending", "executed"]),
+  version: zod.number(),
+  expiresAt: zod.date(),
+});
+
+export const CreateWalletChallengeBody = zod.object({
+  wallet: zod.string(),
+});
+
+export const CreateWalletChallengeResponse = zod.object({
+  message: zod.string(),
+  expiresAt: zod.date(),
+});
+
+export const LinkWalletBody = zod.object({
+  signature: zod
+    .string()
+    .describe("Base64 Ed25519 signature of the exact challenge message"),
+});
+
+export const LinkWalletResponse = zod.object({
+  walletAddress: zod.string(),
+});
+
+export const GetRuntimeResponse = zod.object({
+  backend: zod.enum(["database", "solana"]),
+  solanaProgramId: zod.string(),
+});

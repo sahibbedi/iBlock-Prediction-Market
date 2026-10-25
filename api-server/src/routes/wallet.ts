@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, usersTable, transactionsTable, positionsTable, marketsTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
-import { authMiddleware, requireAuth, generateTxHash } from "../lib/auth.js";
+import { authMiddleware, requireAuth, requireParticipant, generateTxHash } from "../lib/auth.js";
 import { getPrice } from "../lib/amm.js";
 
 const router = Router();
@@ -10,6 +10,7 @@ function httpError(status: number, message: string) {
 }
 
 router.get("/balance", authMiddleware, requireAuth, async (req, res) => {
+  if (!req.user!.id) return void res.json({ giesBalance: 0, deskBalance: 0, role: "observer", totalPortfolioValue: 0, unrealizedPnl: 0, realizedPnl: 0 });
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.id)).limit(1);
   const giesBalance = parseFloat(user.giesBalance);
 
@@ -109,7 +110,7 @@ router.get("/positions", authMiddleware, requireAuth, async (req, res) => {
   res.json(result);
 });
 
-router.post("/redeem", authMiddleware, requireAuth, async (req, res) => {
+router.post("/redeem", authMiddleware, requireAuth, requireParticipant, async (req, res) => {
   const { marketId, outcome } = req.body;
 
   if (outcome !== "yes" && outcome !== "no") {

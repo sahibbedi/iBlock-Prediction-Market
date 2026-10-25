@@ -30,12 +30,30 @@ pub enum IbpmError {
     InsufficientGies,
     #[msg("Open LP positions must be removed first")]
     OpenLpPositions,
-    #[msg("Desk must be empty")]
+    #[msg("Maker capital must be clawed back first")]
     DeskNotEmpty,
     #[msg("Market id mismatch")]
     MarketIdMismatch,
     #[msg("Wrong outcome")]
     InvalidOutcome,
-    #[msg("Already registered")]
-    AlreadyRegistered,
+    #[msg("Already enrolled")]
+    AlreadyEnrolled,
+    #[msg("Not on the campus allowlist")]
+    NotAllowlisted,
+    #[msg("Participant is inactive")]
+    Inactive,
+    #[msg("Committee threshold not met")]
+    ThresholdNotMet,
+    #[msg("Not a committee member")]
+    NotCommittee,
+    #[msg("Invalid committee")]
+    InvalidCommittee,
+    #[msg("Maker appointment required")]
+    NotMaker,
+    #[msg("Reward exceeds remaining authorized emissions") ]
+    RewardBudgetExceeded,
+    #[msg("Output is below the signed minimum") ]
+    SlippageExceeded,
+    #[msg("Starting balance already granted")]
+    StarterAlreadyClaimed,
 }

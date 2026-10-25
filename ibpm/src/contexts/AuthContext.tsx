@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { User, useGetMe } from "@workspace/api-client-react";
+import { User, useGetMe, setAuthTokenGetter } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+
+setAuthTokenGetter(() => localStorage.getItem("ibpm_token"));
 
 interface AuthContextType {
   user: User | null;
@@ -18,22 +21,25 @@ const AuthContext = createContext<AuthContextType>({
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(localStorage.getItem("ibpm_token"));
+  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
   const { data: user, isLoading, isError } = useGetMe({
     query: {
       enabled: !!token,
+      queryKey: ["/api/auth/me", token],
       retry: false,
     },
-    request: token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
   });
 
   const login = (newToken: string) => {
+    queryClient.clear();
     localStorage.setItem("ibpm_token", newToken);
     setToken(newToken);
   };
 
   const logout = () => {
+    queryClient.clear();
     localStorage.removeItem("ibpm_token");
     setToken(null);
     setLocation("/");
@@ -46,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [isError]);
 
   return (
-    <AuthContext.Provider value={{ user: user || null, isLoading: isLoading && !!token, login, logout }}>
+    <AuthContext.Provider value={{ user: token ? user || null : null, isLoading: isLoading && !!token, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

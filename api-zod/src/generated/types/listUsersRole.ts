@@ -9,8 +9,8 @@
 export type ListUsersRole = (typeof ListUsersRole)[keyof typeof ListUsersRole];
 
 export const ListUsersRole = {
-  student: "student",
+  observer: "observer",
+  trader: "trader",
   market_maker: "market_maker",
-  teacher: "teacher",
   admin: "admin",
 } as const;

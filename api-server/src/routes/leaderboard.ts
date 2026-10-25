@@ -18,8 +18,8 @@ router.get("/", authMiddleware, requireAuth, async (req, res) => {
 
   const users = await db.select().from(usersTable);
   const filtered = users.filter((u) => {
-    // Only students and market makers compete; admins/teachers are operators.
-    if (u.role !== "student" && u.role !== "market_maker") return false;
+    // Only participants compete; committee accounts are operators.
+    if (u.role !== "trader" && u.role !== "market_maker") return false;
     if (cohortId) return u.cohortId === parseInt(cohortId as string);
     return true;
   });

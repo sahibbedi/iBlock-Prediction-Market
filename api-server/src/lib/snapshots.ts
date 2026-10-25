@@ -18,9 +18,6 @@ export async function runSnapshot(): Promise<number> {
     const makers = (await db.select().from(usersTable)).filter((u) => u.role === "market_maker");
     if (makers.length === 0) return 0;
 
-    // The active cycle = the rotation group the current makers belong to.
-    const activeGroup = makers.find((m) => m.rotationGroup != null)?.rotationGroup ?? null;
-
     const markets = await db.select().from(marketsTable);
     const marketById = new Map(markets.map((m) => [m.id, m]));
 
@@ -46,7 +43,6 @@ export async function runSnapshot(): Promise<number> {
           poolShare: poolShare.toFixed(8),
           deployedValue: deployedValue.toFixed(6),
           marketCumulativeFees: market.cumulativeFees,
-          cycleGroup: activeGroup,
         });
       }
     }
@@ -54,7 +50,7 @@ export async function runSnapshot(): Promise<number> {
     if (rows.length > 0) {
       await db.insert(lpSnapshotsTable).values(rows);
     }
-    logger.info({ makers: makers.length, rows: rows.length, activeGroup }, "LP snapshot taken");
+    logger.info({ makers: makers.length, rows: rows.length }, "LP snapshot taken");
     return rows.length;
   } catch (err) {
     // Never let a snapshot failure crash the server.

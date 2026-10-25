@@ -12,7 +12,10 @@ import commentsRouter from "./comments.js";
 import ideasRouter from "./ideas.js";
 import badgesRouter from "./badges.js";
 
+import committeeRouter from "./committee.js";
+
 const router = Router();
+router.use("/committee", committeeRouter);
 
 router.use(healthRouter);
 router.use("/auth", authRouter);

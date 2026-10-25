@@ -2,6 +2,8 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startSnapshotLoop } from "./lib/snapshots";
 
+if (!process.env.AUTH_SECRET || process.env.AUTH_SECRET.length < 32) throw new Error("Set AUTH_SECRET to at least 32 random characters");
+
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {

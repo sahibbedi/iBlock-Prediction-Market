@@ -1,8 +1,14 @@
 packages:
-  - artifacts/*
-  - lib/*
-  - lib/integrations/*
+  - api-server
+  - ibpm
+  - api-spec
+  - api-client-react
+  - api-zod
+  - db
+  - mockup-sandbox
   - scripts
+  - solana
+  - solana/client
 
 autoInstallPeers: false
 

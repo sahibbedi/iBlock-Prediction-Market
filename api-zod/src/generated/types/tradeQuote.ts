@@ -20,4 +20,5 @@ export interface TradeQuote {
   safeguardWarnings: string[];
   /** Whether this trade would be blocked by a safeguard */
   isBlocked: boolean;
+  isBootstrapping?: boolean;
 }

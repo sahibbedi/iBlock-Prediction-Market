@@ -9,3 +9,4 @@ export * from "./ideas";
 export * from "./badges";
 export * from "./roster";
 export * from "./snapshots";
+export * from "./governance";

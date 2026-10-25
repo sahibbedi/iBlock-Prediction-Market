@@ -16,4 +16,6 @@ export interface User {
   cohortId?: number | null;
   giesBalance: number;
   createdAt: Date;
+  active?: boolean;
+  walletAddress?: string | null;
 }

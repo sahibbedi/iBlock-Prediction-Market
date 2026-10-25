@@ -1,10 +1,14 @@
 import { Router } from "express";
 import { db, marketsTable, tradesTable, priceHistoryTable, usersTable, transactionsTable, marketCommentsTable, lpPositionsTable } from "@workspace/db";
 import { eq, desc, and, count } from "drizzle-orm";
-import { authMiddleware, requireAuth, canTeach, generateTxHash } from "../lib/auth.js";
+import { authMiddleware, requireAuth, requireAdmin, generateTxHash } from "../lib/auth.js";
 import { getPrice, computeEffectivePools } from "../lib/amm.js";
 
 const router = Router();
+router.use((req, res, next) => {
+  if (req.method !== "GET" && !req.path.endsWith("/reset-password")) return void res.status(409).json({ error: "Use /api/committee/proposals for committee approval" });
+  next();
+});
 
 function formatMarket(m: typeof marketsTable.$inferSelect) {
   const yesPool = parseFloat(m.yesPool);
@@ -70,118 +74,6 @@ router.get("/", authMiddleware, requireAuth, async (req, res) => {
   })));
 });
 
-router.post("/", authMiddleware, requireAuth, canTeach, async (req, res) => {
-  const { title, description, resolutionCriteria, learningPanel, category, cohortId, initialLiquidity, resolvesAt, maxPriceImpact, minPoolDepth, maxTradeSizePct, virtualLiquidity, virtualLiquidityDecayVolume } = req.body;
-  if (!title || !description || !initialLiquidity) {
-    res.status(400).json({ error: "Missing required fields" });
-    return;
-  }
-  if (!resolutionCriteria || !resolutionCriteria.trim()) {
-    res.status(400).json({ error: "Resolution criteria is required" });
-    return;
-  }
-
-  if (maxPriceImpact !== undefined) {
-    const v = parseFloat(maxPriceImpact);
-    if (!isFinite(v) || v <= 0 || v >= 1) {
-      res.status(400).json({ error: "maxPriceImpact must be a number between 0 and 1 (exclusive)" });
-      return;
-    }
-  }
-  if (minPoolDepth !== undefined) {
-    const v = parseFloat(minPoolDepth);
-    if (!isFinite(v) || v <= 0) {
-      res.status(400).json({ error: "minPoolDepth must be a positive number" });
-      return;
-    }
-  }
-  if (maxTradeSizePct !== undefined) {
-    const v = parseFloat(maxTradeSizePct);
-    if (!isFinite(v) || v <= 0 || v > 1) {
-      res.status(400).json({ error: "maxTradeSizePct must be a number between 0 and 1 (inclusive)" });
-      return;
-    }
-  }
-  if (virtualLiquidity !== undefined) {
-    const v = parseFloat(virtualLiquidity);
-    if (!isFinite(v) || v < 0) {
-      res.status(400).json({ error: "virtualLiquidity must be a non-negative number" });
-      return;
-    }
-  }
-  if (virtualLiquidityDecayVolume !== undefined) {
-    const v = parseFloat(virtualLiquidityDecayVolume);
-    if (!isFinite(v) || v <= 0) {
-      res.status(400).json({ error: "virtualLiquidityDecayVolume must be a positive number" });
-      return;
-    }
-  }
-
-  const teacher = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.id)).limit(1);
-  const teacherBalance = parseFloat(teacher[0].giesBalance);
-  if (teacherBalance < initialLiquidity) {
-    res.status(400).json({ error: "Insufficient balance for initial liquidity" });
-    return;
-  }
-
-  // Closed-loop init (FPMM): lock the creator's GIES in the vault and mint an
-  // equal number of complete sets (1 GIES -> 1 YES + 1 NO) into the reserves.
-  // Reserves = supply = vault = initialLiquidity, so the market starts fully
-  // collateralized at a 50/50 price.
-  const liquidity = parseFloat(initialLiquidity);
-
-  const insertValues: typeof marketsTable.$inferInsert = {
-    title,
-    description,
-    resolutionCriteria: resolutionCriteria || "",
-    learningPanel: learningPanel || null,
-    category: category || "general",
-    cohortId: cohortId || null,
-    creatorId: req.user!.id,
-    status: "open",
-    yesPool: liquidity.toFixed(6),
-    noPool: liquidity.toFixed(6),
-    totalLiquidity: liquidity.toFixed(6),
-    lpShares: liquidity.toFixed(6),
-    vaultCollateral: liquidity.toFixed(6),
-    totalYesSupply: liquidity.toFixed(6),
-    totalNoSupply: liquidity.toFixed(6),
-    resolvesAt: resolvesAt ? new Date(resolvesAt) : null,
-    ...(maxPriceImpact !== undefined && { maxPriceImpact: parseFloat(maxPriceImpact).toFixed(4) }),
-    ...(minPoolDepth !== undefined && { minPoolDepth: parseFloat(minPoolDepth).toFixed(6) }),
-    ...(maxTradeSizePct !== undefined && { maxTradeSizePct: parseFloat(maxTradeSizePct).toFixed(4) }),
-    ...(virtualLiquidity !== undefined && { virtualLiquidity: parseFloat(virtualLiquidity).toFixed(6) }),
-    ...(virtualLiquidityDecayVolume !== undefined && { virtualLiquidityDecayVolume: parseFloat(virtualLiquidityDecayVolume).toFixed(6) }),
-  };
-
-  const market = await db.transaction(async (tx) => {
-    const [created] = await tx.insert(marketsTable).values(insertValues).returning();
-
-    await tx.update(usersTable)
-      .set({ giesBalance: (teacherBalance - liquidity).toFixed(6) })
-      .where(eq(usersTable.id, req.user!.id));
-
-    // Creator owns 100% of the initial liquidity.
-    await tx.insert(lpPositionsTable).values({
-      userId: req.user!.id,
-      marketId: created.id,
-      lpShares: liquidity.toFixed(6),
-      totalGiesProvided: liquidity.toFixed(6),
-    });
-
-    await tx.insert(priceHistoryTable).values({
-      marketId: created.id,
-      yesPrice: "0.5",
-      noPrice: "0.5",
-      volume: "0",
-    });
-
-    return created;
-  });
-
-  res.status(201).json(formatMarket(market));
-});
-
 router.get("/:marketId", authMiddleware, requireAuth, async (req, res) => {
   const marketId = parseInt(String(req.params.marketId));
   const [market] = await db.select().from(marketsTable).where(eq(marketsTable.id, marketId)).limit(1);
@@ -222,120 +114,6 @@ router.get("/:marketId", authMiddleware, requireAuth, async (req, res) => {
   };
 
   res.json(formatted);
-});
-
-router.post("/:marketId/resolve", authMiddleware, requireAuth, canTeach, async (req, res) => {
-  const marketId = parseInt(String(req.params.marketId));
-  const { outcome } = req.body;
-
-  if (!["yes", "no"].includes(outcome)) {
-    res.status(400).json({ error: "Outcome must be 'yes' or 'no'" });
-    return;
-  }
-
-  const [market] = await db.select().from(marketsTable).where(eq(marketsTable.id, marketId)).limit(1);
-  if (!market) {
-    res.status(404).json({ error: "Market not found" });
-    return;
-  }
-  if (market.status === "resolved") {
-    res.status(400).json({ error: "Market already resolved" });
-    return;
-  }
-
-  const [updated] = await db.update(marketsTable)
-    .set({ status: "resolved", outcome })
-    .where(eq(marketsTable.id, marketId))
-    .returning();
-
-  res.json(formatMarket(updated));
-});
-
-router.post("/:marketId/close", authMiddleware, requireAuth, canTeach, async (req, res) => {
-  const marketId = parseInt(String(req.params.marketId));
-  const [updated] = await db.update(marketsTable)
-    .set({ status: "closed" })
-    .where(eq(marketsTable.id, marketId))
-    .returning();
-  if (!updated) {
-    res.status(404).json({ error: "Market not found" });
-    return;
-  }
-  res.json(formatMarket(updated));
-});
-
-router.patch("/:marketId/safeguards", authMiddleware, requireAuth, canTeach, async (req, res) => {
-  const marketId = parseInt(String(req.params.marketId));
-  const { maxPriceImpact, minPoolDepth, maxTradeSizePct, virtualLiquidity, virtualLiquidityDecayVolume } = req.body;
-
-  if (maxPriceImpact !== undefined) {
-    const v = parseFloat(maxPriceImpact);
-    if (!isFinite(v) || v <= 0 || v >= 1) {
-      res.status(400).json({ error: "maxPriceImpact must be a number between 0 and 1 (exclusive)" });
-      return;
-    }
-  }
-  if (minPoolDepth !== undefined) {
-    const v = parseFloat(minPoolDepth);
-    if (!isFinite(v) || v <= 0) {
-      res.status(400).json({ error: "minPoolDepth must be a positive number" });
-      return;
-    }
-  }
-  if (maxTradeSizePct !== undefined) {
-    const v = parseFloat(maxTradeSizePct);
-    if (!isFinite(v) || v <= 0 || v > 1) {
-      res.status(400).json({ error: "maxTradeSizePct must be a number between 0 and 1 (inclusive)" });
-      return;
-    }
-  }
-  if (virtualLiquidity !== undefined) {
-    const v = parseFloat(virtualLiquidity);
-    if (!isFinite(v) || v < 0) {
-      res.status(400).json({ error: "virtualLiquidity must be a non-negative number" });
-      return;
-    }
-  }
-  if (virtualLiquidityDecayVolume !== undefined) {
-    const v = parseFloat(virtualLiquidityDecayVolume);
-    if (!isFinite(v) || v <= 0) {
-      res.status(400).json({ error: "virtualLiquidityDecayVolume must be a positive number" });
-      return;
-    }
-  }
-
-  if (
-    maxPriceImpact === undefined &&
-    minPoolDepth === undefined &&
-    maxTradeSizePct === undefined &&
-    virtualLiquidity === undefined &&
-    virtualLiquidityDecayVolume === undefined
-  ) {
-    res.status(400).json({ error: "At least one field must be provided" });
-    return;
-  }
-
-  const [market] = await db.select().from(marketsTable).where(eq(marketsTable.id, marketId)).limit(1);
-  if (!market) {
-    res.status(404).json({ error: "Market not found" });
-    return;
-  }
-
-  type UpdateFields = Pick<typeof marketsTable.$inferInsert, "maxPriceImpact" | "minPoolDepth" | "maxTradeSizePct" | "virtualLiquidity" | "virtualLiquidityDecayVolume">;
-  const updates: Partial<UpdateFields> = {
-    ...(maxPriceImpact !== undefined && { maxPriceImpact: parseFloat(maxPriceImpact).toFixed(4) }),
-    ...(minPoolDepth !== undefined && { minPoolDepth: parseFloat(minPoolDepth).toFixed(6) }),
-    ...(maxTradeSizePct !== undefined && { maxTradeSizePct: parseFloat(maxTradeSizePct).toFixed(4) }),
-    ...(virtualLiquidity !== undefined && { virtualLiquidity: parseFloat(virtualLiquidity).toFixed(6) }),
-    ...(virtualLiquidityDecayVolume !== undefined && { virtualLiquidityDecayVolume: parseFloat(virtualLiquidityDecayVolume).toFixed(6) }),
-  };
-
-  const [updated] = await db.update(marketsTable)
-    .set(updates)
-    .where(eq(marketsTable.id, marketId))
-    .returning();
-
-  res.json(formatMarket(updated));
 });
 
 router.get("/:marketId/price-history", authMiddleware, requireAuth, async (req, res) => {

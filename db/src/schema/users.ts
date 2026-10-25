@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, numeric, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, numeric, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -7,16 +7,14 @@ export const usersTable = pgTable("users", {
   username: text("username").notNull().unique(),
   displayName: text("display_name").notNull(),
   email: text("email"),
+  walletAddress: text("wallet_address").unique(),
   passwordHash: text("password_hash").notNull(),
-  role: text("role").notNull().default("student"),
+  role: text("role").notNull().default("observer"),
   cohortId: integer("cohort_id"),
-  // Rotation group (1..3) for the maker/taker seat rotation. NULL = not in a group
-  // (e.g. teacher/admin). One group is "active" (market_maker) per cycle.
-  rotationGroup: integer("rotation_group"),
-  giesBalance: numeric("gies_balance", { precision: 18, scale: 6 }).notNull().default("1000"),
-  // Separate "market-maker desk" capital. Granted when a student enters their
-  // maker cycle, settled (and zeroed) when they rotate out. Liquidity operations
-  // draw from this while role = market_maker; personal trading uses giesBalance.
+  active: boolean("active").notNull().default(true),
+  sessionVersion: integer("session_version").notNull().default(0),
+  giesBalance: numeric("gies_balance", { precision: 18, scale: 6 }).notNull().default("0"),
+  // Persistent committee-funded capital. Personal trading uses giesBalance.
   deskBalance: numeric("desk_balance", { precision: 18, scale: 6 }).notNull().default("0"),
   faucetLastClaimed: timestamp("faucet_last_claimed"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

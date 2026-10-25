@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, Button, Input } from "@/components/ui";
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -47,7 +47,7 @@ export default function Settings() {
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) throw new Error((data as any)?.error || "Could not change password.");
-      setSuccess("Password updated.");
+      logout();
       setOldPassword("");
       setNewPassword("");
       setConfirm("");
@@ -57,6 +57,8 @@ export default function Settings() {
       setIsPending(false);
     }
   };
+
+  if (user?.role === "observer") return <p>Observer access has no password to change.</p>;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-xl">

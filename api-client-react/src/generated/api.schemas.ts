@@ -25,9 +25,9 @@ export interface LoginRequest {
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
 export const UserRole = {
-  student: "student",
+  observer: "observer",
+  trader: "trader",
   market_maker: "market_maker",
-  teacher: "teacher",
   admin: "admin",
 } as const;
 
@@ -40,6 +40,8 @@ export interface User {
   cohortId?: number | null;
   giesBalance: number;
   createdAt: string;
+  active?: boolean;
+  walletAddress?: string | null;
 }
 
 export interface AuthResponse {
@@ -51,9 +53,9 @@ export type CreateUserRequestRole =
   (typeof CreateUserRequestRole)[keyof typeof CreateUserRequestRole];
 
 export const CreateUserRequestRole = {
-  student: "student",
+  observer: "observer",
+  trader: "trader",
   market_maker: "market_maker",
-  teacher: "teacher",
   admin: "admin",
 } as const;
 
@@ -70,9 +72,9 @@ export type UpdateUserRequestRole =
   (typeof UpdateUserRequestRole)[keyof typeof UpdateUserRequestRole];
 
 export const UpdateUserRequestRole = {
-  student: "student",
+  observer: "observer",
+  trader: "trader",
   market_maker: "market_maker",
-  teacher: "teacher",
   admin: "admin",
 } as const;
 
@@ -270,6 +272,7 @@ export interface TradeQuote {
   safeguardWarnings: string[];
   /** Whether this trade would be blocked by a safeguard */
   isBlocked: boolean;
+  isBootstrapping?: boolean;
 }
 
 export interface UpdateSafeguardsRequest {
@@ -403,6 +406,50 @@ export interface LeaderboardEntry {
   role: string;
 }
 
+export type CommitteeActionType =
+  (typeof CommitteeActionType)[keyof typeof CommitteeActionType];
+
+export const CommitteeActionType = {
+  role: "role",
+  membership: "membership",
+  capital: "capital",
+  roster: "roster",
+  treasury: "treasury",
+  pause: "pause",
+  thresholds: "thresholds",
+  economics: "economics",
+  create_market: "create_market",
+  close_market: "close_market",
+  resolve_market: "resolve_market",
+  market_params: "market_params",
+  reward: "reward",
+} as const;
+
+/**
+ * Action fields and validation are defined in api-server/src/lib/governance.ts. See docs/integration.md.
+ */
+export interface CommitteeAction {
+  type: CommitteeActionType;
+  [key: string]: unknown;
+}
+
+export type CommitteeProposalStatus =
+  (typeof CommitteeProposalStatus)[keyof typeof CommitteeProposalStatus];
+
+export const CommitteeProposalStatus = {
+  pending: "pending",
+  executed: "executed",
+} as const;
+
+export interface CommitteeProposal {
+  id: number;
+  action: CommitteeAction;
+  approvals: number[];
+  status: CommitteeProposalStatus;
+  version: number;
+  expiresAt: string;
+}
+
 export type ListUsersParams = {
   cohortId?: number;
   role?: ListUsersRole;
@@ -411,9 +458,9 @@ export type ListUsersParams = {
 export type ListUsersRole = (typeof ListUsersRole)[keyof typeof ListUsersRole];
 
 export const ListUsersRole = {
-  student: "student",
+  observer: "observer",
+  trader: "trader",
   market_maker: "market_maker",
-  teacher: "teacher",
   admin: "admin",
 } as const;
 
@@ -441,4 +488,35 @@ export type GetTransactionsParams = {
 
 export type GetLeaderboardParams = {
   cohortId?: number;
+};
+
+export type CreateWalletChallengeBody = {
+  wallet: string;
+};
+
+export type CreateWalletChallenge200 = {
+  message: string;
+  expiresAt: string;
+};
+
+export type LinkWalletBody = {
+  /** Base64 Ed25519 signature of the exact challenge message */
+  signature: string;
+};
+
+export type LinkWallet200 = {
+  walletAddress: string;
+};
+
+export type GetRuntime200Backend =
+  (typeof GetRuntime200Backend)[keyof typeof GetRuntime200Backend];
+
+export const GetRuntime200Backend = {
+  database: "database",
+  solana: "solana",
+} as const;
+
+export type GetRuntime200 = {
+  backend: GetRuntime200Backend;
+  solanaProgramId: string;
 };

@@ -10,8 +10,8 @@ export type UpdateUserRequestRole =
   (typeof UpdateUserRequestRole)[keyof typeof UpdateUserRequestRole];
 
 export const UpdateUserRequestRole = {
-  student: "student",
+  observer: "observer",
+  trader: "trader",
   market_maker: "market_maker",
-  teacher: "teacher",
   admin: "admin",
 } as const;

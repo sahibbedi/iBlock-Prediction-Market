@@ -6,16 +6,15 @@ import { formatGies, cn } from "@/lib/utils";
 import { Badge } from "@/components/ui";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["student", "market_maker", "teacher", "admin"] },
-  { href: "/markets", label: "Markets", icon: LineChart, roles: ["student", "market_maker", "teacher", "admin"] },
-  { href: "/portfolio", label: "Portfolio", icon: Wallet, roles: ["student", "market_maker", "teacher", "admin"] },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy, roles: ["student", "market_maker", "teacher", "admin"] },
-  { href: "/ideas", label: "Market Ideas", icon: Lightbulb, roles: ["student", "market_maker", "teacher", "admin"] },
-  { href: "/badges", label: "Badges", icon: Star, roles: ["student", "market_maker", "teacher", "admin"] },
-  { href: "/liquidity", label: "Liquidity Pools", icon: Droplet, roles: ["market_maker", "teacher", "admin"] },
-  { href: "/teacher", label: "Teacher Tools", icon: Users, roles: ["teacher", "admin"] },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["observer", "trader", "market_maker", "admin"] },
+  { href: "/markets", label: "Markets", icon: LineChart, roles: ["observer", "trader", "market_maker", "admin"] },
+  { href: "/portfolio", label: "Portfolio", icon: Wallet, roles: ["observer", "trader", "market_maker", "admin"] },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy, roles: ["observer", "trader", "market_maker", "admin"] },
+  { href: "/ideas", label: "Market Ideas", icon: Lightbulb, roles: ["observer", "trader", "market_maker", "admin"] },
+  { href: "/badges", label: "Badges", icon: Star, roles: ["observer", "trader", "market_maker", "admin"] },
+  { href: "/liquidity", label: "Liquidity Pools", icon: Droplet, roles: ["market_maker"] },
   { href: "/admin", label: "Admin Console", icon: ShieldAlert, roles: ["admin"] },
-  { href: "/settings", label: "Settings", icon: Settings, roles: ["student", "market_maker", "teacher", "admin"] },
+  { href: "/settings", label: "Settings", icon: Settings, roles: ["observer", "trader", "market_maker", "admin"] },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {

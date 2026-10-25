@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, cohortsTable, cohortMembersTable, usersTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { authMiddleware, requireAuth, canTeach } from "../lib/auth.js";
+import { authMiddleware, requireAuth, requireAdmin } from "../lib/auth.js";
 
 const router = Router();
 
@@ -24,7 +24,7 @@ router.get("/", authMiddleware, requireAuth, async (req, res) => {
   res.json(result);
 });
 
-router.post("/", authMiddleware, requireAuth, canTeach, async (req, res) => {
+router.post("/", authMiddleware, requireAuth, requireAdmin, async (req, res) => {
   const { name, description } = req.body;
   if (!name) {
     res.status(400).json({ error: "Name is required" });
@@ -70,7 +70,7 @@ router.get("/:cohortId", authMiddleware, requireAuth, async (req, res) => {
   });
 });
 
-router.get("/:cohortId/members", authMiddleware, requireAuth, async (req, res) => {
+router.get("/:cohortId/members", authMiddleware, requireAuth, requireAdmin, async (req, res) => {
   const cohortId = parseInt(String(req.params.cohortId));
   const members = await db
     .select({ user: usersTable })
@@ -90,7 +90,7 @@ router.get("/:cohortId/members", authMiddleware, requireAuth, async (req, res) =
   })));
 });
 
-router.post("/:cohortId/members", authMiddleware, requireAuth, canTeach, async (req, res) => {
+router.post("/:cohortId/members", authMiddleware, requireAuth, requireAdmin, async (req, res) => {
   const cohortId = parseInt(String(req.params.cohortId));
   const { userId } = req.body;
 
